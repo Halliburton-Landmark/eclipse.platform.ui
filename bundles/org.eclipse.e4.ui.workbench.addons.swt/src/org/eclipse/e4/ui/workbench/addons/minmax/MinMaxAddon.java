@@ -45,6 +45,7 @@ import org.eclipse.e4.ui.workbench.modeling.EPartService;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabFolder2Adapter;
 import org.eclipse.swt.custom.CTabFolderEvent;
+import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
 import org.eclipse.swt.graphics.Rectangle;
@@ -54,6 +55,8 @@ import org.osgi.service.event.Event;
 
 /**
  * Workbench addon that provides methods to minimize, maximize and restore parts in the window
+ * 
+ * TODO: integrate com.lgc.eclipse.app.model.MinMaxModelAddon code into this class and delete MinMaxModelAddon.
  */
 public class MinMaxAddon {
 
@@ -78,9 +81,6 @@ public class MinMaxAddon {
 
 	@Inject
 	private IEclipseContext context;
-
-	@Inject
-	private EPartService partService;
 
 	// Allow 'local' changes to the tags
 	private boolean ignoreTagChanges = false;
@@ -118,11 +118,7 @@ public class MinMaxAddon {
 		}
 	};
 
-	private MouseListener CTFDblClickListener = new MouseListener() {
-		@Override
-		public void mouseUp(MouseEvent e) {
-		}
-
+	private MouseListener CTFDblClickListener = new MouseAdapter() {
 		@Override
 		public void mouseDown(MouseEvent e) {
 			// HACK! If this is an empty stack treat it as though it was the editor area
@@ -144,41 +140,6 @@ public class MinMaxAddon {
 			}
 		}
 
-		private MUIElement getElementToChange(MouseEvent event) {
-			CTabFolder ctf = (CTabFolder) event.widget;
-			MUIElement element = (MUIElement) ctf.getData(AbstractPartRenderer.OWNING_ME);
-			if (element instanceof MArea) {
-				// set the state on the placeholder
-				return element.getCurSharedRef();
-			}
-
-			MUIElement parentElement = element.getParent();
-			while (parentElement != null && !(parentElement instanceof MArea))
-				parentElement = parentElement.getParent();
-
-			return parentElement != null ? parentElement.getCurSharedRef() : element;
-		}
-
-		@Override
-		public void mouseDoubleClick(MouseEvent e) {
-			// only maximize if the primary mouse button was used
-			if (e.button == 1) {
-				CTabFolder ctf = (CTabFolder) e.widget;
-				if (!ctf.getMaximizeVisible())
-					return;
-
-				// Only fire if we're in the 'tab' area
-				if (e.y > ctf.getTabHeight())
-					return;
-
-				MUIElement elementToChange = getElementToChange(e);
-				if (!elementToChange.getTags().contains(MAXIMIZED)) {
-					setState(elementToChange, MAXIMIZED);
-				} else {
-					setState(elementToChange, null);
-				}
-			}
-		}
 	};
 
 	private void setState(MUIElement element, String state) {
@@ -603,6 +564,10 @@ public class MinMaxAddon {
 		adjustCTFButtons(element);
 		// Activate a part other than the trimStack so that if the tool item is pressed
 		// immediately it will still open the stack.
+		// Use part service from the element window to avoid bug
+		// https://bugs.eclipse.org/bugs/show_bug.cgi?id=502544
+		MWindow win = getWindowFor(element);
+		EPartService partService = win.getContext().get(EPartService.class);
 		partService.requestActivation();
 	}
 
@@ -858,6 +823,9 @@ public class MinMaxAddon {
 		adjustCTFButtons(element);
 
 		// There are more views available to be active...
+		// Use part service from the element window to avoid bug
+		// https://bugs.eclipse.org/bugs/show_bug.cgi?id=502544
+		EPartService partService = win.getContext().get(EPartService.class);
 		partService.requestActivation();
 	}
 

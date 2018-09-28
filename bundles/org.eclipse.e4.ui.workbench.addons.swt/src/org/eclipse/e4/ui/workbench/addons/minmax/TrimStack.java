@@ -1083,9 +1083,11 @@ public class TrimStack {
 				if (clientAreaComposite != null) {
 					clientAreaComposite.removeControlListener(caResizeListener);
 				}
-
-				ctrl.setParent(originalParent);
-
+				
+				if (ctrl != null) {
+					ctrl.setParent(originalParent);
+				}
+				
 				hostPane.dispose();
 				hostPane = null;
 			} else {
