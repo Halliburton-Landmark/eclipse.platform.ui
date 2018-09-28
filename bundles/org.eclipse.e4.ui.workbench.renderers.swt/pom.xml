@@ -19,6 +19,6 @@
   </parent>
   <groupId>org.eclipse.e4</groupId>
   <artifactId>org.eclipse.e4.ui.workbench.renderers.swt</artifactId>
-  <version>0.14.400-SNAPSHOT</version>
+  <version>0.14.400.lgc201703221200</version>
   <packaging>eclipse-plugin</packaging>
 </project>
