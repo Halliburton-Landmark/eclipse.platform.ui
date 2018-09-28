@@ -824,6 +824,11 @@
             description="%category.view.description"
             id="org.eclipse.ui.category.views">
       </category>
+      <category
+            name="%category.tabmenu.name"
+            description="%category.tabmenu.description"
+            id="org.eclipse.ui.category.tabmenu">
+      </category>
       <command
             name="%command.helpContents.name"
             description="%command.helpContents.description"
@@ -1417,6 +1422,24 @@
             defaultHandler="org.eclipse.ui.internal.handlers.ActiveContextInfoHandler"
             id="org.eclipse.ui.activeContextInfo"
             name="%activeContextInfo.name">
+      </command>
+      <command
+            categoryId="org.eclipse.ui.category.tabmenu"
+            defaultHandler="org.eclipse.ui.internal.handlers.CloseTabHandler"
+            id="org.eclipse.ui.tabmenu.close"
+            name="%command.close.name">
+      </command>
+      <command
+            categoryId="org.eclipse.ui.category.tabmenu"
+            defaultHandler="org.eclipse.ui.internal.handlers.CloseOtherTabsHandler"
+            id="org.eclipse.ui.tabmenu.closeOthers"
+            name="%command.closeOthers.name">
+      </command>
+      <command
+            categoryId="org.eclipse.ui.category.tabmenu"
+            defaultHandler="org.eclipse.ui.internal.handlers.CloseAllTabsHandler"
+            id="org.eclipse.ui.tabmenu.closeAll"
+            name="%command.closeAll.name">
       </command>
    </extension>
    
