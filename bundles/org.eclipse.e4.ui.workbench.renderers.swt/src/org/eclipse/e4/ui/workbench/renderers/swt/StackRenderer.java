@@ -32,6 +32,7 @@ import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.e4.ui.css.swt.dom.WidgetElement;
 import org.eclipse.e4.ui.css.swt.properties.custom.CSSPropertyMruVisibleSWTHandler;
 import org.eclipse.e4.ui.di.UIEventTopic;
+import org.eclipse.e4.ui.internal.workbench.E4Workbench;
 import org.eclipse.e4.ui.internal.workbench.OpaqueElementUtil;
 import org.eclipse.e4.ui.internal.workbench.renderers.swt.BasicPartList;
 import org.eclipse.e4.ui.internal.workbench.renderers.swt.SWTRenderersMessages;
@@ -51,13 +52,14 @@ import org.eclipse.e4.ui.model.application.ui.basic.MStackElement;
 import org.eclipse.e4.ui.model.application.ui.basic.MWindow;
 import org.eclipse.e4.ui.model.application.ui.menu.MMenu;
 import org.eclipse.e4.ui.model.application.ui.menu.MMenuElement;
+import org.eclipse.e4.ui.model.application.ui.menu.MPopupMenu;
 import org.eclipse.e4.ui.model.application.ui.menu.MToolBar;
+import org.eclipse.e4.ui.model.application.ui.menu.impl.MenuFactoryImpl;
 import org.eclipse.e4.ui.workbench.IPresentationEngine;
 import org.eclipse.e4.ui.workbench.UIEvents;
 import org.eclipse.e4.ui.workbench.UIEvents.EventTags;
 import org.eclipse.e4.ui.workbench.modeling.EModelService;
 import org.eclipse.e4.ui.workbench.modeling.EPartService;
-import org.eclipse.e4.ui.workbench.modeling.ISaveHandler;
 import org.eclipse.jface.action.IContributionItem;
 import org.eclipse.jface.action.LegacyActionTools;
 import org.eclipse.jface.action.MenuManager;
@@ -79,7 +81,6 @@ import org.eclipse.swt.events.MenuDetectListener;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
-import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.events.TraverseEvent;
@@ -97,9 +98,7 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
-import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Monitor;
-import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.eclipse.swt.widgets.Widget;
@@ -162,7 +161,6 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 	Map<MUIElement, Set<MPlaceholder>> renderedMap;
 
 	public static final String TAG_VIEW_MENU = "ViewMenu"; //$NON-NLS-1$
-	private static final String SHELL_CLOSE_EDITORS_MENU = "shell_close_editors_menu"; //$NON-NLS-1$
 	private static final String STACK_SELECTED_PART = "stack_selected_part"; //$NON-NLS-1$
 
 	/**
@@ -1436,263 +1434,41 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 		return part.isCloseable();
 	}
 
-	private Menu createTabMenu(CTabFolder folder, MPart part) {
-		Shell shell = folder.getShell();
-		Menu cachedMenu = (Menu) shell.getData(SHELL_CLOSE_EDITORS_MENU);
-		if (cachedMenu == null) {
-			cachedMenu = new Menu(folder);
-			shell.setData(SHELL_CLOSE_EDITORS_MENU, cachedMenu);
-		} else {
-			for (MenuItem item : cachedMenu.getItems()) {
-				item.dispose();
+	private Menu createTabMenu(CTabFolder folder, final MPart part) {
+		IEclipseContext partContext = part.getContext();
+		if (partContext == null) {
+			E4Workbench.initializeContext(modelService.getContainingContext(part), part);
+			partContext = part.getContext();
 			}
+		String menuId = part.getElementId() + ".tab"; //$NON-NLS-1$
+		MMenu popupMenu = findTabMenu(part);
+		if (popupMenu == null) {
+			popupMenu = MenuFactoryImpl.eINSTANCE.createPopupMenu();
+			popupMenu.setElementId(menuId);
+			List<String> tags = popupMenu.getTags();
+			tags.add("popup:" + menuId); //$NON-NLS-1$
+			tags.add("popup:org.eclipse.ui.part.tab"); //$NON-NLS-1$
+			tags.add(part.getTags().contains("Editor") ? "popup:org.eclipse.ui.editor.tab" : "popup:org.eclipse.ui.view.tab"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+			part.getMenus().add(popupMenu);
 		}
-
-		final Menu menu = cachedMenu;
-		populateTabMenu(menu, part);
-		return menu;
-	}
-
-	/**
-	 * Populate the tab's context menu for the given part.
-	 *
-	 * @param menu
-	 *            the menu to be populated
-	 * @param part
-	 *            the relevant part
-	 */
-	protected void populateTabMenu(final Menu menu, MPart part) {
-		int closeableElements = 0;
-		if (isClosable(part)) {
-			MenuItem menuItemClose = new MenuItem(menu, SWT.NONE);
-			menuItemClose.setText(SWTRenderersMessages.menuClose);
-			menuItemClose.addSelectionListener(new SelectionAdapter() {
-				@Override
-				public void widgetSelected(SelectionEvent e) {
-					MPart part = (MPart) menu.getData(STACK_SELECTED_PART);
-					EPartService partService = getContextForParent(part).get(
-							EPartService.class);
-					if (partService.savePart(part, true))
-						partService.hidePart(part);
-
+		if (popupMenu.getWidget() == null) {
+			IPresentationEngine engine = context.get(IPresentationEngine.class);
+			engine.createGui(popupMenu, folder, partContext);
 				}
-			});
-			closeableElements++;
+		return (Menu) popupMenu.getWidget();
 		}
 
-		MElementContainer<MUIElement> parent = getParent(part);
-		if (parent != null) {
-			closeableElements += getCloseableSiblingParts(part).size();
-
-			if (closeableElements >= 2) {
-				MenuItem menuItemOthers = new MenuItem(menu, SWT.NONE);
-				menuItemOthers.setText(SWTRenderersMessages.menuCloseOthers);
-				menuItemOthers.addSelectionListener(new SelectionAdapter() {
-					@Override
-					public void widgetSelected(SelectionEvent e) {
-						MPart part = (MPart) menu.getData(STACK_SELECTED_PART);
-						closeSiblingParts(part, true);
-					}
-				});
-
-				int leftFrom = getCloseableSideParts(part, true).size();
-				if (leftFrom > 0) {
-					MenuItem menuItemLeft = new MenuItem(menu, SWT.NONE);
-					menuItemLeft.setText(SWTRenderersMessages.menuCloseLeft);
-					menuItemLeft.addSelectionListener(new SelectionAdapter() {
-						@Override
-						public void widgetSelected(SelectionEvent e) {
-							MPart part = (MPart) menu.getData(STACK_SELECTED_PART);
-							closeSideParts(part, true);
-						}
-					});
+	private MMenu findTabMenu(MPart part) {
+		String partMenuId = part.getElementId() + ".tab"; //$NON-NLS-1$
+		for (MMenu item : part.getMenus()) {
+			if (partMenuId.equals(item.getElementId())
+					&& item instanceof MPopupMenu) {
+					return item;	
 				}
-
-				int rightFrom = getCloseableSideParts(part, false).size();
-				if (rightFrom > 0) {
-					MenuItem menuItemRight = new MenuItem(menu, SWT.NONE);
-					menuItemRight.setText(SWTRenderersMessages.menuCloseRight);
-					menuItemRight.addSelectionListener(new SelectionAdapter() {
-						@Override
-						public void widgetSelected(SelectionEvent e) {
-							MPart part = (MPart) menu.getData(STACK_SELECTED_PART);
-							closeSideParts(part, false);
-						}
-					});
-				}
-
-				new MenuItem(menu, SWT.SEPARATOR);
-
-				MenuItem menuItemAll = new MenuItem(menu, SWT.NONE);
-				menuItemAll.setText(SWTRenderersMessages.menuCloseAll);
-				menuItemAll.addSelectionListener(new SelectionAdapter() {
-					@Override
-					public void widgetSelected(SelectionEvent e) {
-						MPart part = (MPart) menu.getData(STACK_SELECTED_PART);
-						closeSiblingParts(part, false);
-					}
-				});
-			}
 		}
+		return null;
 	}
-
-	private MElementContainer<MUIElement> getParent(MPart part) {
-		MElementContainer<MUIElement> parent = part.getParent();
-		if (parent == null) {
-			MPlaceholder placeholder = part.getCurSharedRef();
-			return placeholder == null ? null : placeholder.getParent();
-		}
-		return parent;
-	}
-
-	private List<MPart> getCloseableSideParts(MPart part, boolean left) {
-		MElementContainer<MUIElement> container = getParent(part);
-		if (container == null) {
-			return new ArrayList<>();
-		}
-
-		int thisPartIdx = getPartIndex(part, container);
-		if (thisPartIdx == -1) {
-			return new ArrayList<>();
-		}
-		List<MUIElement> children = container.getChildren();
-		final int start = left ? 0 : thisPartIdx + 1;
-		final int end = left ? thisPartIdx : children.size();
-
-		return getCloseableSiblingParts(part, children, start, end);
-	}
-
-	private int getPartIndex(MPart part, MElementContainer<MUIElement> container) {
-		List<MUIElement> children = container.getChildren();
-		for (int i = 0; i < children.size(); i++) {
-			MUIElement child = children.get(i);
-			MPart otherPart = null;
-			if (child instanceof MPart) {
-				otherPart = (MPart) child;
-			} else if (child instanceof MPlaceholder) {
-				MUIElement otherItem = ((MPlaceholder) child).getRef();
-				if (otherItem instanceof MPart) {
-					otherPart = (MPart) otherItem;
-				}
-			}
-			if (otherPart == part) {
-				return i;
-			}
-		}
-		return -1;
-	}
-
-	private List<MPart> getCloseableSiblingParts(MPart part) {
-		MElementContainer<MUIElement> container = getParent(part);
-		if (container == null) {
-			return new ArrayList<>();
-		}
-
-		List<MUIElement> children = container.getChildren();
-		return getCloseableSiblingParts(part, children, 0, children.size());
-	}
-
-	private List<MPart> getCloseableSiblingParts(MPart part, List<MUIElement> children,
-			final int start, final int end) {
-		// broken out from closeSiblingParts so it can be used to determine how
-		// many closeable siblings are available
-		List<MPart> closeableSiblings = new ArrayList<>();
-		for (int i = start; i < end; i++) {
-			MUIElement child = children.get(i);
-			// If the element isn't showing skip it
-			if (!child.isToBeRendered())
-				continue;
-
-			MPart otherPart = null;
-			if (child instanceof MPart)
-				otherPart = (MPart) child;
-			else if (child instanceof MPlaceholder) {
-				MUIElement otherItem = ((MPlaceholder) child).getRef();
-				if (otherItem instanceof MPart)
-					otherPart = (MPart) otherItem;
-			}
-			if (otherPart == null)
-				continue;
-
-			if (part.equals(otherPart))
-				continue; // skip selected item
-			if (otherPart.isToBeRendered() && isClosable(otherPart))
-				closeableSiblings.add(otherPart);
-		}
-		return closeableSiblings;
-	}
-
-	private void closeSideParts(MPart part, boolean left) {
-		MElementContainer<MUIElement> container = getParent(part);
-		if (container == null) {
-			return;
-		}
-		List<MPart> others = getCloseableSideParts(part, left);
-		closeSiblingParts(part, others, true);
-	}
-
-	private void closeSiblingParts(MPart part, boolean skipThisPart) {
-		MElementContainer<MUIElement> container = getParent(part);
-		if (container == null) {
-			return;
-		}
-		List<MPart> others = getCloseableSiblingParts(part);
-		closeSiblingParts(part, others, skipThisPart);
-	}
-
-	private void closeSiblingParts(MPart part, List<MPart> others, boolean skipThisPart) {
-		MElementContainer<MUIElement> container = getParent(part);
-
-		// add the current part last so that we unrender obscured items first
-		if (!skipThisPart && part.isToBeRendered() && isClosable(part)) {
-			others.add(part);
-		}
-
-		// add the selected element of the stack at the end, else we may end up
-		// selecting another part when we hide it since it is the selected
-		// element
-		MUIElement selectedElement = container.getSelectedElement();
-		if (others.remove(selectedElement)) {
-			others.add((MPart) selectedElement);
-		} else if (selectedElement instanceof MPlaceholder) {
-			selectedElement = ((MPlaceholder) selectedElement).getRef();
-			if (others.remove(selectedElement)) {
-				others.add((MPart) selectedElement);
-			}
-		}
-
-		EPartService partService = getContextForParent(part).get(
-				EPartService.class);
-		// try using the ISaveHandler first... This gives better control of
-		// dialogs...
-		ISaveHandler saveHandler = getContextForParent(part).get(
-				ISaveHandler.class);
-		if (saveHandler != null) {
-			final List<MPart> toPrompt = new ArrayList<>(others);
-			toPrompt.retainAll(partService.getDirtyParts());
-
-			boolean cancel = false;
-			if (toPrompt.size() > 1) {
-				cancel = !saveHandler.saveParts(toPrompt, true);
-			} else if (toPrompt.size() == 1) {
-				cancel = !saveHandler.save(toPrompt.get(0), true);
-			}
-			if (cancel) {
-				return;
-			}
-
-			for (MPart other : others) {
-				partService.hidePart(other);
-			}
-			return;
-		}
-
-		// No ISaveHandler, fall back to just using the part service...
-		for (MPart otherPart : others) {
-			if (partService.savePart(otherPart, true))
-				partService.hidePart(otherPart);
-		}
-	}
+	
 
 	public static MMenu getViewMenu(MPart part) {
 		if (part == null || part.getMenus() == null) {
