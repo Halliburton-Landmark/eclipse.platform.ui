@@ -65,7 +65,8 @@ public class NewKeysPreferenceMessages extends NLS {
 	public static String ActionSetFilterCheckBox_Text;
 	public static String InternalFilterCheckBox_Text;
 	public static String UncategorizedFilterCheckBox_Text;
-
+	public static String OverrriddenBy_Text;
+	
 	static {
 		// load message values from bundle file
 		NLS.initializeMessages(BUNDLE_NAME, NewKeysPreferenceMessages.class);

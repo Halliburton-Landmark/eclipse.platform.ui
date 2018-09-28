@@ -42,7 +42,8 @@ public class SavePerspectiveHandler extends AbstractHandler {
 
 	@Inject
 	EModelService modelService;
-
+
+
 	@Override
 	public Object execute(ExecutionEvent event) {
 

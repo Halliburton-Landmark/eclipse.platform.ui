@@ -29,6 +29,8 @@ import org.eclipse.e4.core.commands.ExpressionContext;
 import org.eclipse.e4.core.contexts.IEclipseContext;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.activities.IIdentifier;
+import org.eclipse.ui.activities.IWorkbenchActivitySupport;
 import org.eclipse.ui.commands.ICommandImageService;
 import org.eclipse.ui.commands.ICommandService;
 import org.eclipse.ui.handlers.IHandlerService;
@@ -91,24 +93,50 @@ public class CommandProvider extends QuickAccessProvider {
 		if (!commandRetrieved) {
 			ICommandService commandService = getCommandService();
 			EHandlerService ehandlerService = getEHandlerService();
-
-			final Command command = commandService.getCommand(currentCommandId);
-			ParameterizedCommand pcmd = new ParameterizedCommand(command, null);
-			if (command != null && ehandlerService.canExecute(pcmd)) {
-				try {
-					Collection<?> combinations = ParameterizedCommand.generateCombinations(command);
-					for (Iterator<?> it = combinations.iterator(); it.hasNext();) {
-						ParameterizedCommand pc = (ParameterizedCommand) it.next();
-						String id = pc.serialize();
-						synchronized (idToCommand) {
-							idToCommand.put(id, new CommandElement(pc, id, this));
+			final Collection commandIds = commandService.getDefinedCommandIds();
+			final Iterator commandIdItr = commandIds.iterator();
+			while (commandIdItr.hasNext()) {
+				final String commandId = (String) commandIdItr.next();
+				final Command command = commandService
+						.getCommand(commandId);
+				ParameterizedCommand pcmd = new ParameterizedCommand(command, null);
+				if (command != null && ehandlerService.canExecute(pcmd) && !isFilteredOut(command.getId())) {
+					try {
+						Collection combinations = ParameterizedCommand
+								.generateCombinations(command);
+						for (Iterator it = combinations.iterator(); it
+								.hasNext();) {
+							ParameterizedCommand pc = (ParameterizedCommand) it.next();
+							String id = pc.serialize();
+							if (!isFilteredOut(id)) {
+								synchronized (idToCommand) {
+									idToCommand.put(id,
+									new CommandElement(pc, id, this));
+								}
+							}
 						}
+					} catch (final NotDefinedException e) {
+						// It is safe to just ignore undefined commands.
 					}
-				} catch (final NotDefinedException e) {
-					// It is safe to just ignore undefined commands.
 				}
 			}
 		}
+	}
+
+	/**
+	 * Eclipse activity framework only allows to filter out visual elements
+	 * (implementing IPluginContribution), and is not able to filter out
+	 * commands from Quick Access. We add support for filtering out commands
+	 * declared in plugin.xml with the pattern: #command/&lt;commandId&gt;
+	 *
+	 * @param command
+	 *            command to check
+	 * @return true is a command should be hidden
+	 */
+	private boolean isFilteredOut(String commandId) {
+		IWorkbenchActivitySupport workbenchActivitySupport = PlatformUI.getWorkbench().getActivitySupport();
+		IIdentifier identifier = workbenchActivitySupport.getActivityManager().getIdentifier("#command/" + commandId); //$NON-NLS-1$
+		return !identifier.isEnabled();
 	}
 
 	@Override
