@@ -15,6 +15,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
+import org.eclipse.e4.ui.model.application.MApplication;
+import org.eclipse.e4.ui.model.application.ui.basic.MWindow;
 import org.eclipse.jface.action.ActionContributionItem;
 import org.eclipse.jface.action.IContributionItem;
 import org.eclipse.jface.action.MenuManager;
@@ -49,8 +52,7 @@ public class ActionProvider extends QuickAccessProvider {
 	public QuickAccessElement[] getElements() {
 		if (idToElement == null) {
 			idToElement = new HashMap();
-			IWorkbenchWindow window = PlatformUI
-					.getWorkbench().getActiveWorkbenchWindow();
+            IWorkbenchWindow window = getWorkbenchWindow();
 			if (window instanceof WorkbenchWindow) {
 				MenuManager menu = ((WorkbenchWindow) window).getMenuManager();
 				Set result = new HashSet();
@@ -68,6 +70,18 @@ public class ActionProvider extends QuickAccessProvider {
 				new ActionElement[idToElement.values().size()]);
 	}
 
+    private IWorkbenchWindow getWorkbenchWindow() {
+        MApplication app = (MApplication) PlatformUI.getWorkbench().getService(MApplication.class);
+        MWindow activeWindow = app.getSelectedElement();
+        if (activeWindow == null && !app.getChildren().isEmpty()) {
+            activeWindow = app.getChildren().get(0);
+        }
+        if (activeWindow != null && activeWindow.getWidget() == null) {
+            return null;
+        }
+        return (IWorkbenchWindow) activeWindow.getContext().get(IWorkbenchWindow.class.getName());
+    }
+    
 	private void collectContributions(MenuManager menu, Set result) {
 		IContributionItem[] items = menu.getItems();
 		for (int i = 0; i < items.length; i++) {

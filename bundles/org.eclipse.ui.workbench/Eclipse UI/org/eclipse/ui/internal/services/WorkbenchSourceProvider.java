@@ -52,6 +52,7 @@ import org.eclipse.ui.services.IServiceLocator;
  * @since 3.5
  * @author Prakash G.R.
  */
+@SuppressWarnings({"rawtypes","unchecked"})
 public class WorkbenchSourceProvider extends AbstractSourceProvider implements
 		INullSelectionListener {
 
@@ -675,6 +676,11 @@ public class WorkbenchSourceProvider extends AbstractSourceProvider implements
 				}
 				return;
 			}
+	    // delay until after e4 Model is updated so workbench.getActiveWorkbenchWindow
+	    // returns the correct instance.
+	    event.display.asyncExec(() -> { if (!event.widget.isDisposed()) processEvent(event);});
+    }
+		private final void processEvent(Event event) {
 			if (DEBUG) {
 				logDebuggingInfo("\tWSP:lastActiveShell: " + lastActiveShell); //$NON-NLS-1$
 				logDebuggingInfo("\tWSP:lastActiveWorkbenchWindowShell" + lastActiveWorkbenchWindowShell); //$NON-NLS-1$

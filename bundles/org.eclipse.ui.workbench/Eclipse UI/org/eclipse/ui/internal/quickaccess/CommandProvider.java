@@ -24,6 +24,8 @@ import org.eclipse.e4.core.commands.ExpressionContext;
 import org.eclipse.e4.core.contexts.IEclipseContext;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.activities.IIdentifier;
+import org.eclipse.ui.activities.IWorkbenchActivitySupport;
 import org.eclipse.ui.commands.ICommandService;
 import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.internal.IWorkbenchGraphicConstants;
@@ -74,7 +76,7 @@ public class CommandProvider extends QuickAccessProvider {
 				final Command command = commandService
 						.getCommand(currentCommandId);
 				ParameterizedCommand pcmd = new ParameterizedCommand(command, null);
-				if (command != null && ehandlerService.canExecute(pcmd)) {
+				if (command != null && ehandlerService.canExecute(pcmd) && !isFilteredOut(command.getId())) {
 					try {
 						Collection combinations = ParameterizedCommand
 								.generateCombinations(command);
@@ -82,8 +84,10 @@ public class CommandProvider extends QuickAccessProvider {
 								.hasNext();) {
 							ParameterizedCommand pc = (ParameterizedCommand) it.next();
 							String id = pc.serialize();
-							idToElement.put(id,
+							if (!isFilteredOut(id)) {
+								idToElement.put(id,
 									new CommandElement(pc, id, this));
+							}
 						}
 					} catch (final NotDefinedException e) {
 						// It is safe to just ignore undefined commands.
@@ -93,6 +97,22 @@ public class CommandProvider extends QuickAccessProvider {
 		}
 		return (QuickAccessElement[]) idToElement.values().toArray(
 				new QuickAccessElement[idToElement.values().size()]);
+	}
+
+	/**
+	 * Eclipse activity framework only allows to filter out visual elements
+	 * (implementing IPluginContribution), and is not able to filter out
+	 * commands from Quick Access. We add support for filtering out commands
+	 * declared in plugin.xml with the pattern: #command/&lt;commandId&gt;
+	 *
+	 * @param command
+	 *            command to check
+	 * @return true is a command should be hidden
+	 */
+	private boolean isFilteredOut(String commandId) {
+		IWorkbenchActivitySupport workbenchActivitySupport = PlatformUI.getWorkbench().getActivitySupport();
+		IIdentifier identifier = workbenchActivitySupport.getActivityManager().getIdentifier("#command/" + commandId); //$NON-NLS-1$
+		return !identifier.isEnabled();
 	}
 
 	@Override

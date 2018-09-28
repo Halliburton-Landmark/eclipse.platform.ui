@@ -69,7 +69,11 @@ public class CommandElement extends QuickAccessElement {
 			IHandlerService handlerService = window
 					.getWorkbench().getService(IHandlerService.class);
 			try {
-				handlerService.executeCommand(command, null);
+				if (command.getCommand().isEnabled()) {
+					handlerService.executeCommand(command, null);
+				} else {
+					StatusUtil.handleStatus("Cannot execute disabled command.", StatusManager.SHOW | StatusManager.LOG); //$NON-NLS-1$
+				}
 			} catch (Exception ex) {
 				StatusUtil.handleStatus(ex, StatusManager.SHOW
 						| StatusManager.LOG);

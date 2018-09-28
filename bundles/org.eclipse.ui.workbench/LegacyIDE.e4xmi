@@ -23,4 +23,5 @@
   <addons xmi:id="_bqcWME2EEd-DfN2vYY4Lew" elementId="DnD Addon" contributionURI="bundleclass://org.eclipse.e4.ui.workbench.addons.swt/org.eclipse.e4.ui.workbench.addons.dndaddon.DnDAddon"/>
   <addons xmi:id="_7GC6sGp-Ed-QyNZjH9g15Q" elementId="MinMax Addon" contributionURI="bundleclass://org.eclipse.e4.ui.workbench.addons.swt/org.eclipse.e4.ui.workbench.addons.minmax.MinMaxAddon"/>
   <addons xmi:id="_00yosOXqEeGugqEu_OWUGQ" elementId="org.eclipse.ui.workbench.addon.0" contributionURI="bundleclass://org.eclipse.e4.ui.workbench/org.eclipse.e4.ui.internal.workbench.addons.HandlerProcessingAddon"/>
+  <addons xmi:id="_P1VLQBHrEeaP75OnEHGCBA" elementId="org.eclipse.ui.workbench.addon.1" contributionURI="bundleclass://org.eclipse.ui.workbench/org.eclipse.ui.internal.e4.compatibility.TabMenuAddon"/>
 </application:Application>
