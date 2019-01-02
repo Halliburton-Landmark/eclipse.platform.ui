@@ -12,6 +12,7 @@
 
 package org.eclipse.e4.ui.workbench.addons.cleanupaddon;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.e4.core.di.annotations.Optional;
@@ -44,15 +45,18 @@ import org.eclipse.swt.widgets.Shell;
 import org.osgi.service.event.Event;
 
 public class CleanupAddon {
-	@Inject
 	IEventBroker eventBroker;
 
-	@Inject
 	EModelService modelService;
 
-	@Inject
 	MApplication app;
 
+	@PostConstruct
+	private void init(MApplication app, EModelService modelService, IEventBroker eventBroker) {
+      this.app = app;
+      this.modelService = modelService;
+      this.eventBroker = eventBroker;
+	}
 	@Inject
 	@Optional
 	private void subscribeTopicChildren(@UIEventTopic(UIEvents.ElementContainer.TOPIC_CHILDREN) Event event) {
@@ -122,7 +126,6 @@ public class CleanupAddon {
 					MElementContainer<MUIElement> parentContainer = container.getParent();
 					if (parentContainer != null) {
 						int index = parentContainer.getChildren().indexOf(container);
-
 						// Magic check, are we unwrapping a sash container
 						if (theChild instanceof MPartSashContainer) {
 							if (container.getWidget() instanceof Composite) {
@@ -134,7 +137,6 @@ public class CleanupAddon {
 								container.setWidget(tmp);
 							}
 						}
-
 						theChild.setContainerData(container.getContainerData());
 						container.getChildren().remove(theChild);
 						parentContainer.getChildren().add(index, theChild);
@@ -145,7 +147,6 @@ public class CleanupAddon {
 			}
 		});
 	}
-
 	/**
 	 * Returns true if and only if the given element should make itself visible
 	 * when its first child becomes visible and make itself invisible whenever
@@ -325,7 +326,7 @@ public class CleanupAddon {
 								theContainer.setToBeRendered(false);
 						}
 					});
-				} else {
+				} else if (container.getParent() != null) { // omit detached windows
 					// if there are rendered elements but none are 'visible' we should
 					// make the container invisible as well
 					boolean makeInvisible = true;
