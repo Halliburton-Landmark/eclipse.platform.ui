@@ -96,6 +96,7 @@ import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Monitor;
@@ -1408,7 +1409,6 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 	}
 
 	private Menu createTabMenu(CTabFolder folder, MPart part) {
-		new Menu(folder);
 
 		IEclipseContext partContext = part.getContext();
 		if (partContext == null) {
@@ -1431,10 +1431,23 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 			IPresentationEngine engine = context.get(IPresentationEngine.class);
 			engine.createGui(popupMenu, folder, partContext);
 		}
-		final Menu menu = (Menu) popupMenu.getWidget();
-
+		final Menu managedMenu = (Menu) popupMenu.getWidget();
+		// It's not possible to add additional MenuItems to a Menu backed by MenuManager (MenuManager would remove non-manager items them during update),
+		// so we copy items to another menu:
+		Menu menu = new Menu(folder);
+		for (MenuItem item : managedMenu.getItems()) {
+			cloneMenuItem(menu, item);
+		}
 		populateTabMenu(menu, part);
 		return menu;
+	}
+
+	private void cloneMenuItem(Menu menu, MenuItem item) {
+		MenuItem newItem = new MenuItem(menu, item.getStyle());
+		newItem.setText(item.getText());
+		newItem.setImage(item.getImage());
+		for (Listener l : item.getListeners(SWT.Selection))
+			newItem.addListener(SWT.Selection, l);
 	}
 
 	private MMenu findTabMenu(MPart part) {
