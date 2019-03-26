@@ -1432,7 +1432,7 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 			engine.createGui(popupMenu, folder, partContext);
 		}
 		final Menu managedMenu = (Menu) popupMenu.getWidget();
-		// It's not possible to add additional MenuItems to a Menu backed by MenuManager (MenuManager would remove non-manager items them during update),
+		// It's not possible to add additional MenuItems to a Menu backed by MenuManager (MenuManager would remove non-managed items them during update),
 		// so we copy items to another menu:
 		Menu menu = new Menu(folder);
 		for (MenuItem item : managedMenu.getItems()) {
@@ -1446,6 +1446,9 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 		MenuItem newItem = new MenuItem(menu, item.getStyle());
 		newItem.setText(item.getText());
 		newItem.setImage(item.getImage());
+		if (item.getMenu() != null) {
+			newItem.setMenu(item.getMenu());
+		}
 		for (Listener l : item.getListeners(SWT.Selection))
 			newItem.addListener(SWT.Selection, l);
 	}
