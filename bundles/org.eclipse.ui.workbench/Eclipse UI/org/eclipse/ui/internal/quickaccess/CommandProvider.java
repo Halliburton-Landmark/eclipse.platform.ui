@@ -93,31 +93,23 @@ public class CommandProvider extends QuickAccessProvider {
 		if (!commandRetrieved) {
 			ICommandService commandService = getCommandService();
 			EHandlerService ehandlerService = getEHandlerService();
-			final Collection commandIds = commandService.getDefinedCommandIds();
-			final Iterator commandIdItr = commandIds.iterator();
-			while (commandIdItr.hasNext()) {
-				final String commandId = (String) commandIdItr.next();
-				final Command command = commandService
-						.getCommand(commandId);
-				ParameterizedCommand pcmd = new ParameterizedCommand(command, null);
-				if (command != null && ehandlerService.canExecute(pcmd) && !isFilteredOut(command.getId())) {
-					try {
-						Collection combinations = ParameterizedCommand
-								.generateCombinations(command);
-						for (Iterator it = combinations.iterator(); it
-								.hasNext();) {
-							ParameterizedCommand pc = (ParameterizedCommand) it.next();
-							String id = pc.serialize();
+
+			final Command command = commandService.getCommand(currentCommandId);
+			ParameterizedCommand pcmd = new ParameterizedCommand(command, null);
+			if (command != null && ehandlerService.canExecute(pcmd) && !isFilteredOut(command.getId())) {
+				try {
+					Collection<?> combinations = ParameterizedCommand.generateCombinations(command);
+					for (Iterator<?> it = combinations.iterator(); it.hasNext();) {
+						ParameterizedCommand pc = (ParameterizedCommand) it.next();
+						String id = pc.serialize();
+						synchronized (idToCommand) {
 							if (!isFilteredOut(id)) {
-								synchronized (idToCommand) {
-									idToCommand.put(id,
-									new CommandElement(pc, id, this));
-								}
+								idToCommand.put(id, new CommandElement(pc, id, this));
 							}
 						}
-					} catch (final NotDefinedException e) {
-						// It is safe to just ignore undefined commands.
 					}
+				} catch (final NotDefinedException e) {
+					// It is safe to just ignore undefined commands.
 				}
 			}
 		}
