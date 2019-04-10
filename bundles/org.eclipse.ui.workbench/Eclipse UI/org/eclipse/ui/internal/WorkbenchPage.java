@@ -67,7 +67,6 @@ import org.eclipse.e4.ui.internal.workbench.PartServiceImpl;
 import org.eclipse.e4.ui.model.application.MApplication;
 import org.eclipse.e4.ui.model.application.descriptor.basic.MPartDescriptor;
 import org.eclipse.e4.ui.model.application.ui.MElementContainer;
-import org.eclipse.e4.ui.model.application.ui.MGenericStack;
 import org.eclipse.e4.ui.model.application.ui.MUIElement;
 import org.eclipse.e4.ui.model.application.ui.advanced.MArea;
 import org.eclipse.e4.ui.model.application.ui.advanced.MPerspective;
@@ -2113,145 +2112,45 @@ public class WorkbenchPage implements IWorkbenchPage {
 			}
 		}
 
-		MUIElement area = findSharedArea();
-		if (area instanceof MPlaceholder) {
-			area = ((MPlaceholder) area).getRef();
-		}
-		if (area != null && area.isVisible() && area.isToBeRendered()) {
-			// we have a shared area, try iterating over its editors first
-			List<MPart> editors = modelService.findElements(area, CompatibilityEditor.MODEL_ELEMENT_ID, MPart.class);
-			for (MPart model : editors) {
-				Object object = model.getObject();
-				if (object instanceof CompatibilityEditor) {
-					CompatibilityEditor editor = (CompatibilityEditor) object;
-					// see bug 308492
-					if (!editor.isBeingDisposed() && isInArea(area, model)) {
-						return ((CompatibilityEditor) object).getEditor();
-					}
-				}
-			}
-		}
 
-		MPerspective perspective = getPerspectiveStack().getSelectedElement();
-		if (perspective == null) {
-			return null;
-		}
-
-		List<MPart> parts = modelService.findElements(perspective,
-				CompatibilityEditor.MODEL_ELEMENT_ID, MPart.class, null);
-		for (MPart part : parts) {
-			Object object = part.getObject();
-			if (object instanceof CompatibilityEditor) {
-				CompatibilityEditor editor = (CompatibilityEditor) object;
-				// see bug 308492
-				if (!editor.isBeingDisposed()) {
-					if (isValid(perspective, part) || isValid(window, part)) {
-						return ((CompatibilityEditor) object).getEditor();
-					}
-				}
-			}
-		}
-		return null;
+		// To deal with edge case bugs like 453072
+		// we use DSG's MPart tag 'activeEditor' to determine an active editor when Eclipse logic find no editor.
+		// This makes the return value consistent with UI (tab highlighting CSS uses the same tag)
+		return modelService
+				.findElements(window, MPart.class, EModelService.ANYWHERE,
+						part -> part.getTags().contains("activeEditor")) //$NON-NLS-1$
+				.stream()
+				.map(MPart::getObject)
+				.filter(object -> (object instanceof CompatibilityEditor))
+				.map(object -> (CompatibilityEditor) object)
+				.filter(compEditor -> !compEditor.isBeingDisposed()) // see bug 308492
+				.map(CompatibilityEditor::getEditor)
+				.findAny()
+				.orElse(null);
 	}
 
 	/**
 	 * Searches and returns an editor from the activation list that is being
-	 * displayed in the current presentation. If an editor is in the
-	 * presentation but is behind another part it will not be returned.
+	 * displayed in the current presentation
 	 *
 	 * @return an editor that is being shown in the current presentation and was
-	 *         previously activated, editors that are behind another part in a
-	 *         stack will not be returned
+	 * previously activated
 	 */
 	private IEditorPart findActiveEditor() {
-		List<MPart> candidates = new ArrayList<>(activationList);
-		MUIElement area = findSharedArea();
-		if (area instanceof MPlaceholder) {
-			area = ((MPlaceholder) area).getRef();
-		}
-		if (area != null && area.isVisible() && area.isToBeRendered()) {
-			// we have a shared area, try iterating over its editors first
-			List<MPart> editors = modelService
-					.findElements(area, CompatibilityEditor.MODEL_ELEMENT_ID, MPart.class);
-			for (Iterator<MPart> it = candidates.iterator(); it.hasNext();) {
-				MPart model = it.next();
-				if (!editors.contains(model)) {
-					continue;
-				}
-
-				Object object = model.getObject();
-				if (object instanceof CompatibilityEditor) {
-					CompatibilityEditor editor = (CompatibilityEditor) object;
-					// see bug 308492
-					if (!editor.isBeingDisposed() && isInArea(area, model)) {
-						return ((CompatibilityEditor) object).getEditor();
-					}
-				}
-				it.remove();
-			}
-		}
-
-		MPerspective perspective = getPerspectiveStack().getSelectedElement();
+		// To make the behavior more predictable and avoid issues like DSG
+		// defect 394483 we simply return the last active editor from
+		// activation history
 		for (MPart model : activationList) {
 			Object object = model.getObject();
 			if (object instanceof CompatibilityEditor) {
 				CompatibilityEditor editor = (CompatibilityEditor) object;
 				// see bug 308492
 				if (!editor.isBeingDisposed()) {
-					if (isValid(perspective, model) || isValid(window, model)) {
-						return ((CompatibilityEditor) object).getEditor();
-					}
+					return ((CompatibilityEditor) object).getEditor();
 				}
 			}
 		}
 		return null;
-    }
-
-	private boolean isInArea(MUIElement area, MUIElement element) {
-		if (!element.isToBeRendered() || !element.isVisible()) {
-			return false;
-		}
-
-		if (element == area) {
-			return true;
-		}
-
-		MElementContainer<?> parent = element.getParent();
-		if (parent == null || parent instanceof MPerspective || parent instanceof MWindow) {
-			return false;
-		} else if (parent instanceof MGenericStack) {
-			return parent.getSelectedElement() == element ? isValid(area, parent) : false;
-		}
-
-		return isValid(area, parent);
-	}
-
-	private boolean isValid(MUIElement ancestor, MUIElement element) {
-		if (!element.isToBeRendered() || !element.isVisible()) {
-			return false;
-		}
-
-		if (element == ancestor) {
-			return true;
-		}
-
-		MElementContainer<?> parent = element.getParent();
-		if (parent == null) {
-			// might be a detached window
-			if (element instanceof MWindow) {
-				parent = (MElementContainer<?>) ((EObject) element).eContainer();
-			}
-
-			if (parent == null) {
-				return false;
-			}
-		}
-
-		if (parent instanceof MGenericStack) {
-			return parent.getSelectedElement() == element ? isValid(ancestor, parent) : false;
-		}
-
-		return isValid(ancestor, parent);
 	}
 
     @Override

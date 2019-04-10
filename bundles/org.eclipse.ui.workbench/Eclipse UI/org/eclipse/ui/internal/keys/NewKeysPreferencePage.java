@@ -22,7 +22,6 @@ package org.eclipse.ui.internal.keys;
 import static org.eclipse.swt.events.SelectionListener.widgetSelectedAdapter;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
@@ -39,20 +38,25 @@ import org.eclipse.jface.bindings.keys.KeyStroke;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.preference.PreferencePage;
 import org.eclipse.jface.resource.DeviceResourceException;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.resource.LocalResourceManager;
 import org.eclipse.jface.util.IPropertyChangeListener;
+import org.eclipse.jface.util.PropertyChangeEvent;
+import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ColumnWeightData;
 import org.eclipse.jface.viewers.ComboViewer;
 import org.eclipse.jface.viewers.IBaseLabelProvider;
 import org.eclipse.jface.viewers.ISelection;
-import org.eclipse.jface.viewers.IStructuredContentProvider;
+import org.eclipse.jface.viewers.ISelectionChangedListener;
+import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.LabelProvider;
+import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.viewers.TableLayout;
 import org.eclipse.jface.viewers.TableViewer;
@@ -183,6 +187,8 @@ public class NewKeysPreferencePage extends PreferencePage implements IWorkbenchP
 	private KeySequenceText fKeySequenceText;
 
 	private TableViewer conflictViewer;
+
+	private TableViewer overrideViewer;
 
 	private ICommandImageService commandImageService;
 
@@ -741,74 +747,47 @@ if (!event.getOldValue().equals(event.getNewValue())) {
 		gridData = new GridData(SWT.FILL, SWT.FILL, true, true);
 		rightDataArea.setLayoutData(gridData);
 
-		new Label(rightDataArea, SWT.NONE); // filler
+		createConflictViewer(rightDataArea);
+		createOverrideViewer(rightDataArea);
+	}
+	private void createConflictViewer(final Composite rightDataArea) {
 
-		// The description label.
-		final Label descriptionLabel = new Label(rightDataArea, SWT.NONE);
-		descriptionLabel.setText(NewKeysPreferenceMessages.ConflictsLabel_Text);
-		gridData = new GridData();
-		gridData.grabExcessHorizontalSpace = true;
-		gridData.horizontalAlignment = SWT.FILL;
-		descriptionLabel.setLayoutData(gridData);
 
-		conflictViewer = new TableViewer(rightDataArea, SWT.SINGLE | SWT.V_SCROLL
-				| SWT.BORDER | SWT.FULL_SELECTION);
-		Table table = conflictViewer.getTable();
-		table.setHeaderVisible(true);
-		TableColumn bindingNameColumn = new TableColumn(table, SWT.LEAD);
-		bindingNameColumn.setText(NewKeysPreferenceMessages.CommandNameColumn_Text);
-		bindingNameColumn.setWidth(150);
-		TableColumn bindingContextNameColumn = new TableColumn(table, SWT.LEAD);
-		bindingContextNameColumn.setText(NewKeysPreferenceMessages.WhenColumn_Text);
-		bindingContextNameColumn.setWidth(150);
-		gridData = new GridData(SWT.FILL, SWT.FILL, true, true);
-		//gridData.horizontalIndent = 10;
-		table.setLayoutData(gridData);
-		TableLayout tableLayout = new TableLayout();
-		tableLayout.addColumnData(new ColumnWeightData(60));
-		tableLayout.addColumnData(new ColumnWeightData(40));
-		table.setLayout(tableLayout);
-		conflictViewer.setContentProvider((IStructuredContentProvider) inputElement -> {
-			if (inputElement instanceof Collection) {
-				return ((Collection) inputElement).toArray();
-			}
-			return new Object[0];
-		});
-		conflictViewer.setLabelProvider(new BindingElementLabelProvider() {
-			@Override
-			public String getColumnText(Object o, int index) {
-				BindingElement element = (BindingElement) o;
-				if (index == 0) {
-					return element.getName();
-				}
-				return element.getContext().getName();
-			}
-		});
-		conflictViewer.addSelectionChangedListener(event -> {
-			ModelElement binding = (ModelElement) event.getStructuredSelection().getFirstElement();
-			BindingModel bindingModel = keyController.getBindingModel();
-			if (binding != null && binding != bindingModel.getSelectedElement()) {
-				StructuredSelection selection = new StructuredSelection(binding);
+		conflictViewer = createBasicConflictViewer(rightDataArea, NewKeysPreferenceMessages.ConflictsLabel_Text);
 
-				bindingModel.setSelectedElement(binding);
-				conflictViewer.setSelection(selection);
+		conflictViewer
+				.addSelectionChangedListener(new ISelectionChangedListener() {
 
-				boolean selectionVisible = false;
-				TreeItem[] items = fFilteredTree.getViewer().getTree().getItems();
-				for (TreeItem item : items) {
-					if (item.getData().equals(binding)) {
-						selectionVisible = true;
-						break;
-					}
-				}
+					// When the conflict viewer's selection changes, update the
+					// model's current selection
+					@Override
+					public void selectionChanged(SelectionChangedEvent event) {
+						ModelElement binding = (ModelElement) ((IStructuredSelection) event.getSelection())
+								.getFirstElement();
+						BindingModel bindingModel = keyController.getBindingModel();
+						if (binding != null && binding != bindingModel.getSelectedElement()) {
+							StructuredSelection selection = new StructuredSelection(binding);
 
-				if (!selectionVisible) {
-					fFilteredTree.getFilterControl().setText(""); //$NON-NLS-1$
-					fFilteredTree.getViewer().refresh();
 					bindingModel.setSelectedElement(binding);
 					conflictViewer.setSelection(selection);
+
+							boolean selectionVisible = false;
+							TreeItem[] items = fFilteredTree.getViewer().getTree().getItems();
+							for (int i = 0; i < items.length; i++) {
+								if (items[i].getData().equals(binding)) {
+									selectionVisible = true;
+									break;
+								}
+							}
+
+							if (!selectionVisible) {
+								fFilteredTree.getFilterControl().setText(""); //$NON-NLS-1$
+								fFilteredTree.getViewer().refresh();
+								bindingModel.setSelectedElement(binding);
+								conflictViewer.setSelection(selection);
+							}
 				}
-			}
+					}
 		});
 
 		IPropertyChangeListener conflictsListener = event -> {
@@ -863,8 +842,69 @@ if (!event.getOldValue().equals(event.getNewValue())) {
 			}
 		};
 		keyController.addPropertyChangeListener(dataUpdateListener);
-
 	}
+
+	private void createOverrideViewer(final Composite rightDataArea) {
+		overrideViewer = createBasicConflictViewer(rightDataArea, NewKeysPreferenceMessages.OverrriddenBy_Text);
+		overrideViewer.addSelectionChangedListener(new ISelectionChangedListener() {
+			// When the override viewer's selection changes, update the
+			// model's current selection
+			@Override
+			public void selectionChanged(SelectionChangedEvent event) {
+				ModelElement binding = (ModelElement) ((IStructuredSelection) event.getSelection()).getFirstElement();
+				BindingModel bindingModel = keyController.getBindingModel();
+				if (binding != null&& binding != bindingModel.getSelectedElement()) {
+					bindingModel.setSelectedElement(binding);
+					overrideViewer.setSelection(StructuredSelection.EMPTY);
+				}
+			}
+		});
+		IPropertyChangeListener overridesListener = new IPropertyChangeListener() {
+			@Override
+			public void propertyChange(PropertyChangeEvent event) {
+				if (ConflictModel.PROP_OVERRIDES.equals(event.getProperty())) {
+					overrideViewer.setInput(event.getNewValue());
+				}
+			}
+		};
+		keyController.addPropertyChangeListener(overridesListener);
+	}
+
+	private TableViewer createBasicConflictViewer(Composite parent, String labelText) {
+		// The description label.
+		final Label descriptionLabel = new Label(parent, SWT.NONE);
+		descriptionLabel.setText(labelText);
+		descriptionLabel.setLayoutData(GridDataFactory.fillDefaults().grab(true, false).create());
+		TableViewer viewer = new TableViewer(parent, SWT.SINGLE | SWT.V_SCROLL
+				| SWT.BORDER | SWT.FULL_SELECTION);
+		Table table = viewer.getTable();
+		table.setHeaderVisible(true);
+		TableColumn bindingNameColumn = new TableColumn(table, SWT.LEAD);
+		bindingNameColumn.setText(NewKeysPreferenceMessages.CommandNameColumn_Text);
+		bindingNameColumn.setWidth(150);
+		TableColumn bindingContextNameColumn = new TableColumn(table, SWT.LEAD);
+		bindingContextNameColumn.setText(NewKeysPreferenceMessages.WhenColumn_Text);
+		bindingContextNameColumn.setWidth(150);
+		table.setLayoutData(GridDataFactory.fillDefaults().grab(true, true).hint(SWT.DEFAULT, 50).create());
+		TableLayout tableLayout = new TableLayout();
+		tableLayout.addColumnData(new ColumnWeightData(60));
+		tableLayout.addColumnData(new ColumnWeightData(40));
+		table.setLayout(tableLayout);
+		viewer.setContentProvider(new ArrayContentProvider());
+		viewer.setLabelProvider(new BindingElementLabelProvider() {
+			@Override
+			public String getColumnText(Object o, int index) {
+				BindingElement element = (BindingElement) o;
+				if (index == 0) {
+					return element.getName();
+				}
+				return element.getContext().getName();
+			}
+		});
+		return viewer;
+	}
+
+
 
 	private void createTree(Composite parent) {
 		fPatternFilter = new CategoryPatternFilter(true, fDefaultCategory);

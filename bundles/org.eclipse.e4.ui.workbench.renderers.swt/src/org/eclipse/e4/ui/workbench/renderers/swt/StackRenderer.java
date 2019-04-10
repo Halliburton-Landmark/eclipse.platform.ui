@@ -37,6 +37,7 @@ import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.e4.ui.css.swt.dom.WidgetElement;
 import org.eclipse.e4.ui.css.swt.properties.custom.CSSPropertyMruVisibleSWTHandler;
 import org.eclipse.e4.ui.di.UIEventTopic;
+import org.eclipse.e4.ui.internal.workbench.E4Workbench;
 import org.eclipse.e4.ui.internal.workbench.OpaqueElementUtil;
 import org.eclipse.e4.ui.internal.workbench.renderers.swt.BasicPartList;
 import org.eclipse.e4.ui.internal.workbench.renderers.swt.SWTRenderersMessages;
@@ -56,7 +57,9 @@ import org.eclipse.e4.ui.model.application.ui.basic.MStackElement;
 import org.eclipse.e4.ui.model.application.ui.basic.MWindow;
 import org.eclipse.e4.ui.model.application.ui.menu.MMenu;
 import org.eclipse.e4.ui.model.application.ui.menu.MMenuElement;
+import org.eclipse.e4.ui.model.application.ui.menu.MPopupMenu;
 import org.eclipse.e4.ui.model.application.ui.menu.MToolBar;
+import org.eclipse.e4.ui.model.application.ui.menu.impl.MenuFactoryImpl;
 import org.eclipse.e4.ui.workbench.IPresentationEngine;
 import org.eclipse.e4.ui.workbench.UIEvents;
 import org.eclipse.e4.ui.workbench.UIEvents.EventTags;
@@ -93,10 +96,10 @@ import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Monitor;
-import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.eclipse.swt.widgets.Widget;
@@ -164,7 +167,6 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 	Map<MUIElement, Set<MPlaceholder>> renderedMap;
 
 	public static final String TAG_VIEW_MENU = "ViewMenu"; //$NON-NLS-1$
-	private static final String SHELL_CLOSE_EDITORS_MENU = "shell_close_editors_menu"; //$NON-NLS-1$
 	private static final String STACK_SELECTED_PART = "stack_selected_part"; //$NON-NLS-1$
 
 	/**
@@ -1407,20 +1409,58 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 	}
 
 	private Menu createTabMenu(CTabFolder folder, MPart part) {
-		Shell shell = folder.getShell();
-		Menu cachedMenu = (Menu) shell.getData(SHELL_CLOSE_EDITORS_MENU);
-		if (cachedMenu == null) {
-			cachedMenu = new Menu(folder);
-			shell.setData(SHELL_CLOSE_EDITORS_MENU, cachedMenu);
-		} else {
-			for (MenuItem item : cachedMenu.getItems()) {
-				item.dispose();
-			}
-		}
 
-		final Menu menu = cachedMenu;
+		IEclipseContext partContext = part.getContext();
+		if (partContext == null) {
+			E4Workbench.initializeContext(modelService.getContainingContext(part), part);
+			partContext = part.getContext();
+		}
+		String menuId = part.getElementId() + ".tab"; //$NON-NLS-1$
+		MMenu popupMenu = findTabMenu(part);
+		if (popupMenu == null) {
+			popupMenu = MenuFactoryImpl.eINSTANCE.createPopupMenu();
+			popupMenu.setElementId(menuId);
+			List<String> tags = popupMenu.getTags();
+			tags.add("popup:" + menuId); //$NON-NLS-1$
+			tags.add("popup:org.eclipse.ui.part.tab"); //$NON-NLS-1$
+			tags.add(part.getTags().contains("Editor") ? "popup:org.eclipse.ui.editor.tab" //$NON-NLS-1$ //$NON-NLS-2$
+					: "popup:org.eclipse.ui.view.tab"); //$NON-NLS-1$
+			part.getMenus().add(popupMenu);
+		}
+		if (popupMenu.getWidget() == null) {
+			IPresentationEngine engine = context.get(IPresentationEngine.class);
+			engine.createGui(popupMenu, folder, partContext);
+		}
+		final Menu managedMenu = (Menu) popupMenu.getWidget();
+		// It's not possible to add additional MenuItems to a Menu backed by MenuManager (MenuManager would remove non-managed items them during update),
+		// so we copy items to another menu:
+		Menu menu = new Menu(folder);
+		for (MenuItem item : managedMenu.getItems()) {
+			cloneMenuItem(menu, item);
+		}
 		populateTabMenu(menu, part);
 		return menu;
+	}
+
+	private void cloneMenuItem(Menu menu, MenuItem item) {
+		MenuItem newItem = new MenuItem(menu, item.getStyle());
+		newItem.setText(item.getText());
+		newItem.setImage(item.getImage());
+		if (item.getMenu() != null) {
+			newItem.setMenu(item.getMenu());
+		}
+		for (Listener l : item.getListeners(SWT.Selection))
+			newItem.addListener(SWT.Selection, l);
+	}
+
+	private MMenu findTabMenu(MPart part) {
+		String partMenuId = part.getElementId() + ".tab"; //$NON-NLS-1$
+		for (MMenu item : part.getMenus()) {
+			if (partMenuId.equals(item.getElementId()) && item instanceof MPopupMenu) {
+				return item;
+			}
+		}
+		return null;
 	}
 
 	/**

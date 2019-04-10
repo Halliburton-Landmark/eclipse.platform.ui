@@ -18,6 +18,7 @@
 package org.eclipse.ui.internal.quickaccess;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -119,7 +120,7 @@ public abstract class QuickAccessContents {
 		Rectangle rect = table.getClientArea ();
 		int itemHeight = table.getItemHeight ();
 		int headerHeight = table.getHeaderHeight ();
-		return (rect.height - headerHeight + itemHeight - 1) / (itemHeight + table.getGridLineWidth());
+		return (rect.height - headerHeight - 1) / (itemHeight);
 	}
 
 	/**
@@ -357,7 +358,19 @@ public abstract class QuickAccessContents {
 		if (selectionIndex == -1) {
 			selectionIndex = 0;
 		}
+		final int preferredLastColumnWidth = getPreferredLastColumnWidth();
+		tableColumnLayout.setColumnData(
+				table.getColumn(1),
+				new ColumnWeightData(50, preferredLastColumnWidth));
 		return selectionIndex;
+	}
+
+	private int getPreferredLastColumnWidth() {
+		return Arrays.stream(table.getItems()).mapToInt(item -> {
+			final String text = item.getText(1);
+			textLayout.setText(text);
+			return textLayout.getBounds().width;
+		}).max().orElse(0) + 24;
 	}
 
 	int numberOfFilteredResults;
@@ -665,6 +678,7 @@ public abstract class QuickAccessContents {
 
 	private Text hintText;
 	private boolean displayHintText;
+	private TableColumnLayout tableColumnLayout;
 
 	/** Create HintText as child of the given parent composite */
 	Text createHintText(Composite composite, int defaultOrientation) {
@@ -720,7 +734,7 @@ public abstract class QuickAccessContents {
 		composite.addDisposeListener(e -> doDispose());
 		Composite tableComposite = new Composite(composite, SWT.NONE);
 		GridDataFactory.fillDefaults().grab(true, true).applyTo(tableComposite);
-		TableColumnLayout tableColumnLayout = new TableColumnLayout();
+		tableColumnLayout = new TableColumnLayout();
 		tableComposite.setLayout(tableColumnLayout);
 		table = new Table(tableComposite, SWT.SINGLE | SWT.FULL_SELECTION);
 		textLayout = new TextLayout(table.getDisplay());
@@ -738,20 +752,15 @@ public abstract class QuickAccessContents {
 				maxProviderWidth = width;
 			}
 		}
-		tableColumnLayout.setColumnData(new TableColumn(table, SWT.NONE), new ColumnWeightData(0, maxProviderWidth));
-		tableColumnLayout.setColumnData(new TableColumn(table, SWT.NONE), new ColumnWeightData(100, 100));
-		table.getShell().addControlListener(new ControlAdapter() {
+		tableColumnLayout.setColumnData(new TableColumn(table, SWT.NONE), new ColumnWeightData(50, maxProviderWidth));
+		tableColumnLayout.setColumnData(new TableColumn(table, SWT.NONE), new ColumnWeightData(50, 100));
+		table.addControlListener(new ControlAdapter() {
 			@Override
 			public void controlResized(ControlEvent e) {
 				if (!showAllMatches) {
-					if (!resized) {
-						resized = true;
-						e.display.timerExec(100, () -> {
-							if (table != null && !table.isDisposed() && filterText !=null && !filterText.isDisposed()) {
-								refresh(filterText.getText().toLowerCase());
-							}
-							resized = false;
-						});
+					if (table != null && !table.isDisposed() && filterText != null && !filterText.isDisposed()
+						&& table.getShell().isVisible()) {
+						refresh(filterText.getText().toLowerCase());
 					}
 				}
 			}
@@ -868,7 +877,7 @@ public abstract class QuickAccessContents {
 		infoLabel.setBackground(table.getBackground());
 		GridData gd = new GridData(GridData.FILL_HORIZONTAL);
 		gd.horizontalAlignment = SWT.RIGHT;
-		gd.grabExcessHorizontalSpace = false;
+		gd.grabExcessHorizontalSpace = true;
 		infoLabel.setLayoutData(gd);
 		updateInfoLabel();
 		return infoLabel;
