@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.function.Consumer;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -66,9 +65,11 @@ import org.eclipse.e4.ui.workbench.UIEvents.EventTags;
 import org.eclipse.e4.ui.workbench.modeling.EModelService;
 import org.eclipse.e4.ui.workbench.modeling.EPartService;
 import org.eclipse.e4.ui.workbench.modeling.ISaveHandler;
+import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionItem;
 import org.eclipse.jface.action.LegacyActionTools;
 import org.eclipse.jface.action.MenuManager;
+import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.accessibility.ACC;
@@ -96,9 +97,7 @@ import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
-import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Monitor;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
@@ -168,6 +167,13 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 
 	public static final String TAG_VIEW_MENU = "ViewMenu"; //$NON-NLS-1$
 	private static final String STACK_SELECTED_PART = "stack_selected_part"; //$NON-NLS-1$
+
+	private static final String TAB_MENU_CLOSE = "org.eclipse.ui.tabmenu.close"; //$NON-NLS-1$
+	private static final String TAB_MENU_CLOSE_OTHERS = "org.eclipse.ui.tabmenu.close.others"; //$NON-NLS-1$
+	private static final String TAB_MENU_CLOSE_ALL = "org.eclipse.ui.tabmenu.close.all"; //$NON-NLS-1$
+	private static final String TAB_MENU_CLOSE_LEFT = "org.eclipse.ui.tabmenu.close.left"; //$NON-NLS-1$
+	private static final String TAB_MENU_CLOSE_RIGHT = "org.eclipse.ui.tabmenu.close.right"; //$NON-NLS-1$
+	private static final String TAB_MENU_DETACH = "org.eclipse.ui.tabmenu.close.detach"; //$NON-NLS-1$
 
 	/**
 	 * Add this tag to prevent the next tab's activation from granting focus
@@ -1432,25 +1438,10 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 			engine.createGui(popupMenu, folder, partContext);
 		}
 		final Menu managedMenu = (Menu) popupMenu.getWidget();
-		// It's not possible to add additional MenuItems to a Menu backed by MenuManager (MenuManager would remove non-managed items them during update),
-		// so we copy items to another menu:
-		Menu menu = new Menu(folder);
-		for (MenuItem item : managedMenu.getItems()) {
-			cloneMenuItem(menu, item);
-		}
-		populateTabMenu(menu, part);
-		return menu;
-	}
-
-	private void cloneMenuItem(Menu menu, MenuItem item) {
-		MenuItem newItem = new MenuItem(menu, item.getStyle());
-		newItem.setText(item.getText());
-		newItem.setImage(item.getImage());
-		if (item.getMenu() != null) {
-			newItem.setMenu(item.getMenu());
-		}
-		for (Listener l : item.getListeners(SWT.Selection))
-			newItem.addListener(SWT.Selection, l);
+		MenuManager menuManager = (MenuManager) managedMenu.getData(MenuManager.MANAGER_KEY);
+		// Add standard Eclipse menu items
+		populateTabMenu(menuManager, part);
+		return managedMenu;
 	}
 
 	private MMenu findTabMenu(MPart part) {
@@ -1466,14 +1457,21 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 	/**
 	 * Populate the tab's context menu for the given part.
 	 *
-	 * @param menu the menu to be populated
-	 * @param part the relevant part
+	 * @param menuManager the menu manager to be populated, it may already contain
+	 *                    both contributed items and Eclipse default items.
+	 * @param part        the relevant part
 	 */
-	protected void populateTabMenu(final Menu menu, MPart part) {
+	protected void populateTabMenu(final MenuManager menuManager, MPart part) {
+		menuManager.remove(TAB_MENU_CLOSE);
+		menuManager.remove(TAB_MENU_CLOSE_OTHERS);
+		menuManager.remove(TAB_MENU_CLOSE_ALL);
+		menuManager.remove(TAB_MENU_CLOSE_LEFT);
+		menuManager.remove(TAB_MENU_CLOSE_RIGHT);
+		menuManager.remove(TAB_MENU_DETACH);
 
 		int closeableElements = 0;
 		if (isClosable(part)) {
-			createMenuItem(menu, SWTRenderersMessages.menuClose, e -> closePart(menu));
+			createMenuItem(menuManager, TAB_MENU_CLOSE, SWTRenderersMessages.menuClose, () -> closePart(part));
 			closeableElements++;
 		}
 
@@ -1482,39 +1480,41 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 			closeableElements += getCloseableSiblingParts(part).size();
 
 			if (closeableElements >= 2) {
-				createMenuItem(menu, SWTRenderersMessages.menuCloseOthers, e -> closeSiblingParts(menu, true));
+				createMenuItem(menuManager, TAB_MENU_CLOSE_OTHERS, SWTRenderersMessages.menuCloseOthers,
+						() -> closeSiblingParts(part, true));
 
 				// create menu for parts on the left
 				if (!getCloseableSideParts(part, true).isEmpty()) {
-					createMenuItem(menu, SWTRenderersMessages.menuCloseLeft, e -> closeSideParts(menu, true));
+					createMenuItem(menuManager, TAB_MENU_CLOSE_LEFT, SWTRenderersMessages.menuCloseLeft,
+							() -> closeSideParts(part, true));
 				}
 
 				// create menu for parts on the right
 				if (!getCloseableSideParts(part, false).isEmpty()) {
-					createMenuItem(menu, SWTRenderersMessages.menuCloseRight, e -> closeSideParts(menu, false));
+					createMenuItem(menuManager, TAB_MENU_CLOSE_RIGHT, SWTRenderersMessages.menuCloseRight,
+							() -> closeSideParts(part, false));
 				}
 
-				new MenuItem(menu, SWT.SEPARATOR);
+				menuManager.add(new Separator());
 
-				createMenuItem(menu, SWTRenderersMessages.menuCloseAll, e -> closeSiblingParts(menu, false));
+				createMenuItem(menuManager, TAB_MENU_CLOSE_ALL, SWTRenderersMessages.menuCloseAll,
+						() -> closeSiblingParts(part, false));
 			}
 		}
 
 		if (closeableElements > 0) {
-			new MenuItem(menu, SWT.SEPARATOR);
+			menuManager.add(new Separator());
 		}
-		createMenuItem(menu, SWTRenderersMessages.menuDetach, e -> detachActivePart(menu));
-
+		createMenuItem(menuManager, TAB_MENU_DETACH, SWTRenderersMessages.menuDetach, () -> detachActivePart(part));
 	}
 
 	/**
 	 *
 	 * Detaches the currently selected part
 	 *
-	 * @param menu
+	 * @param selectedPart
 	 */
-	private void detachActivePart(final Menu menu) {
-		MPart selectedPart = (MPart) menu.getData(STACK_SELECTED_PART);
+	private void detachActivePart(MPart selectedPart) {
 		CTabItem cti = findItemForPart(selectedPart);
 		if (cti == null || cti.getParent() == null) {
 			return;
@@ -1531,10 +1531,9 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 	 *
 	 * Closes the currently selected part
 	 *
-	 * @param menu
+	 * @param selectedPart
 	 */
-	private void closePart(final Menu menu) {
-		MPart selectedPart = (MPart) menu.getData(STACK_SELECTED_PART);
+	private void closePart(MPart selectedPart) {
 		EPartService partService = getContextForParent(selectedPart).get(EPartService.class);
 		if (partService.savePart(selectedPart, true)) {
 			partService.hidePart(selectedPart);
@@ -1544,12 +1543,18 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 	/**
 	 * Helper method for creating menu items
 	 */
-	private MenuItem createMenuItem(final Menu menu, String menuItemText, Consumer<SelectionEvent> c) {
-		MenuItem menuItem = new MenuItem(menu, SWT.NONE);
-		menuItem.setText(menuItemText);
-		menuItem.addSelectionListener(SelectionListener.widgetSelectedAdapter(c));
-		return menuItem;
+	private void createMenuItem(final MenuManager menu, String id, String menuItemText, Runnable action) {
+		menu.add(new Action(menuItemText) {
+			@Override
+			public void run() {
+				action.run();
+			}
 
+			@Override
+			public String getId() {
+				return id;
+			}
+		});
 	}
 
 	private MElementContainer<MUIElement> getParent(MPart part) {
@@ -1638,8 +1643,7 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 		return closeableSiblings;
 	}
 
-	private void closeSideParts(Menu menu, boolean left) {
-		MPart selectedPart = (MPart) menu.getData(STACK_SELECTED_PART);
+	private void closeSideParts(MPart selectedPart, boolean left) {
 		MElementContainer<MUIElement> container = getParent(selectedPart);
 		if (container == null) {
 			return;
@@ -1648,8 +1652,7 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 		closeSiblingParts(selectedPart, others, true);
 	}
 
-	private void closeSiblingParts(Menu menu, boolean skipThisPart) {
-		MPart part = (MPart) menu.getData(STACK_SELECTED_PART);
+	private void closeSiblingParts(MPart part, boolean skipThisPart) {
 		MElementContainer<MUIElement> container = getParent(part);
 		if (container == null) {
 			return;
