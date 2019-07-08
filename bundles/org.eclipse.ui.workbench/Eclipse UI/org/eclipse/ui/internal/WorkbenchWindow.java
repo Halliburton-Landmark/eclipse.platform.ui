@@ -722,18 +722,19 @@ public class WorkbenchWindow implements IWorkbenchWindow {
 				RunAndTrack menuChangeManager = new RunAndTrack() {
 					@Override
 					public boolean changed(IEclipseContext context) {
-						ExpressionInfo info = new ExpressionInfo();
-						IEclipseContext leafContext = windowContext.getActiveLeaf();
-						MenuManagerRendererFilter.collectInfo(info, mainMenu, renderer,
-								leafContext, true);
-						// if one of these variables change, re-run the RAT
-						for (String name : info.getAccessedVariableNames()) {
-							leafContext.get(name);
-						}
-						if (canUpdateMenus && workbench.getDisplay() != null) {
-							canUpdateMenus = false;
-							workbench.getDisplay().asyncExec(menuUpdater);
-						}
+						runExternalCode(() -> {
+							ExpressionInfo info = new ExpressionInfo();
+							IEclipseContext leafContext = windowContext.getActiveLeaf();
+							MenuManagerRendererFilter.collectInfo(info, mainMenu, renderer, leafContext, true);
+							// if one of these variables change, re-run the RAT
+							for (String name : info.getAccessedVariableNames()) {
+								leafContext.get(name);
+							}
+							if (canUpdateMenus && workbench.getDisplay() != null) {
+								canUpdateMenus = false;
+								workbench.getDisplay().asyncExec(menuUpdater);
+							}
+						});
 						return manageChanges;
 					}
 				};
