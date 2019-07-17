@@ -114,6 +114,7 @@ import org.w3c.dom.css.CSSValue;
  *
  */
 public class StackRenderer extends LazyStackRenderer implements IPreferenceChangeListener {
+
 	/**
 	 *
 	 */
@@ -1440,7 +1441,8 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 		final Menu managedMenu = (Menu) popupMenu.getWidget();
 		MenuManager menuManager = (MenuManager) managedMenu.getData(MenuManager.MANAGER_KEY);
 		// Add standard Eclipse menu items
-		populateTabMenu(menuManager, part);
+		populateTabMenuManager(menuManager, part);
+		populateTabMenu(managedMenu, part);
 		return managedMenu;
 	}
 
@@ -1455,13 +1457,24 @@ public class StackRenderer extends LazyStackRenderer implements IPreferenceChang
 	}
 
 	/**
+	 * @deprecated this method is not working anymore: tab menu is now handled by
+	 *             MenuManager that repopulates menu item each time the menu is
+	 *             shown, so the items added in this method will be lost. Use
+	 *             {@link StackRenderer#populateTabMenuManager(MenuManager, MPart)}
+	 *             instead.
+	 */
+	@Deprecated
+	protected void populateTabMenu(final Menu menu, MPart part) {
+	}
+
+	/**
 	 * Populate the tab's context menu for the given part.
 	 *
 	 * @param menuManager the menu manager to be populated, it may already contain
 	 *                    both contributed items and Eclipse default items.
 	 * @param part        the relevant part
 	 */
-	protected void populateTabMenu(final MenuManager menuManager, MPart part) {
+	protected void populateTabMenuManager(final MenuManager menuManager, MPart part) {
 		menuManager.remove(TAB_MENU_CLOSE);
 		menuManager.remove(TAB_MENU_CLOSE_OTHERS);
 		menuManager.remove(TAB_MENU_CLOSE_ALL);
