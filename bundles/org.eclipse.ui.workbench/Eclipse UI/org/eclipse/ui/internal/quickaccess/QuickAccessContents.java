@@ -758,10 +758,15 @@ public abstract class QuickAccessContents {
 			@Override
 			public void controlResized(ControlEvent e) {
 				if (!showAllMatches) {
-					if (table != null && !table.isDisposed() && filterText != null && !filterText.isDisposed()
-						&& table.getShell().isVisible()) {
-						refresh(filterText.getText().toLowerCase());
-					}
+
+					// temerExec is needed to avoid StackOverflowError. See Bug 508717.
+					e.display.timerExec(100, () -> {
+						if (table != null && !table.isDisposed() && filterText != null && !filterText.isDisposed()
+								&& table.getShell().isVisible()) {
+							refresh(filterText.getText().toLowerCase());
+						}
+					});
+
 				}
 			}
 		});
