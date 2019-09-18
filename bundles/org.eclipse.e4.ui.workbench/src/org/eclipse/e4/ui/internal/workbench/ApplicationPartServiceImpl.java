@@ -37,6 +37,7 @@ public class ApplicationPartServiceImpl implements EPartService {
 	}
 
 	private EPartService getActiveWindowService() {
+		// Eclipse bug - https://bugs.eclipse.org/bugs/show_bug.cgi?id=462610
 		IEclipseContext activeWindowContext = application.getSelectedElement().getContext();
 		if (activeWindowContext == null) {
 			throw new IllegalStateException("Application does not have an active window"); //$NON-NLS-1$
