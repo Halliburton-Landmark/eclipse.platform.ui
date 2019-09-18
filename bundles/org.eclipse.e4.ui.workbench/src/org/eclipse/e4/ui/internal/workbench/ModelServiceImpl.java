@@ -677,7 +677,7 @@ public class ModelServiceImpl implements EModelService {
 		// If there is more than one placeholder then return the one in the shared area
 		for (MPlaceholder refPh : elementRefs) {
 			int loc = getElementLocation(refPh);
-			if ((loc & IN_SHARED_AREA) != 0) {
+			if ((loc & (OUTSIDE_PERSPECTIVE | IN_SHARED_AREA)) != 0) {
 				return refPh;
 			}
 		}
