@@ -13,7 +13,10 @@
  *******************************************************************************/
 package org.eclipse.jface.resource;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Device;
@@ -174,6 +177,30 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
         if (url == null) {
             return getMissingImageDescriptor();
         }
+		// DEBUG POC code
+		if (url.toString().endsWith(".png")) { //$NON-NLS-1$
+			try {
+				URL svgUrl = new URL(url.toString().replace(".png", ".svg").replace("_16", "").replace("_24", "") //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
+						.replace("_32", "").replace("_10", "").replace("_8", "")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
+				URLConnection connection = svgUrl.openConnection();
+				connection.connect();
+				System.err.println(url + " replaced by SVG OK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"); //$NON-NLS-1$
+				return new SvgImageDescriptor(svgUrl, 16);
+
+			} catch (IOException e) {
+				if (url.toString().contains("/CommonButton/")) { //$NON-NLS-1$
+					try {
+						return new SvgImageDescriptor(
+								new URL("platform:/plugin/com.lgc.icons/com/lgc/icons/Display/draw_pies.svg"), 120); //$NON-NLS-1$
+					} catch (MalformedURLException e1) {
+					}
+				}
+			}
+		}
+
+		if (url.toString().endsWith(".svg")) { //$NON-NLS-1$
+			return new SvgImageDescriptor(url, 16);
+		}
         return new URLImageDescriptor(url);
     }
 
@@ -290,7 +317,7 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 		 * this fails.
 		 */
 		try {
-			return new Image(device, this::getImageData);
+			return new Image(device, (ImageDataProvider) this::getImageData);
 		} catch (IllegalArgumentException | SWTException e) {
 			if (returnMissingImageOnError) {
 				try {
