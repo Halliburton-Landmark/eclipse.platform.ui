@@ -173,10 +173,10 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
      * @param url The URL of the image file.
      * @return a new image descriptor
      */
-    public static ImageDescriptor createFromURL(URL url) {
-        if (url == null) {
-            return getMissingImageDescriptor();
-        }
+	public static ImageDescriptor createFromURL(URL url) {
+		if (url == null) {
+			return getMissingImageDescriptor();
+		}
 		// DEBUG POC code
 		if (url.toString().endsWith(".png")) { //$NON-NLS-1$
 			try {
@@ -184,9 +184,7 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 						.replace("_32", "").replace("_10", "").replace("_8", "")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
 				URLConnection connection = svgUrl.openConnection();
 				connection.connect();
-				System.err.println(url + " replaced by SVG OK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"); //$NON-NLS-1$
 				return new SvgImageDescriptor(svgUrl, 16);
-
 			} catch (IOException e) {
 				if (url.toString().contains("/CommonButton/")) { //$NON-NLS-1$
 					try {
@@ -201,8 +199,8 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 		if (url.toString().endsWith(".svg")) { //$NON-NLS-1$
 			return new SvgImageDescriptor(url, 16);
 		}
-        return new URLImageDescriptor(url);
-    }
+		return new URLImageDescriptor(url);
+	}
 
     @Override
 	public Object createResource(Device device) throws DeviceResourceException {
