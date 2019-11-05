@@ -73,6 +73,7 @@ import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.action.IMenuCreator;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.resource.SvgImageDescriptor;
 import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Menu;
@@ -1098,7 +1099,9 @@ public class MenuHelper {
 
 		// Attempt to retrieve URIs from the descriptor and convert into a more
 		// durable form in case it's to be persisted
-		if (descriptor.getClass().toString().endsWith("URLImageDescriptor")) { //$NON-NLS-1$
+		if (descriptor instanceof SvgImageDescriptor) {
+			return ((SvgImageDescriptor) descriptor).getURL().toString();
+		} else if (descriptor.getClass().toString().endsWith("URLImageDescriptor")) { //$NON-NLS-1$
 			String url = getUrl(descriptor.getClass(), descriptor);
 			return rewriteDurableURL(url);
 		} else if (descriptor.getClass().toString().endsWith("FileImageDescriptor")) { //$NON-NLS-1$

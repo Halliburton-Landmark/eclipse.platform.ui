@@ -36,4 +36,11 @@ public class SvgImageDescriptor extends ImageDescriptor {
 		return new Image(device, (ImageDataProvider) this::getImageData);
     }
 
+	/**
+	 * @return URL of image
+	 */
+	public URL getURL() {
+		return url;
+	}
+
 }
