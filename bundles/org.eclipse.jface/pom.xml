@@ -20,7 +20,7 @@
   </parent>
   <groupId>org.eclipse.jface</groupId>
   <artifactId>org.eclipse.jface</artifactId>
-  <version>3.15.100.lgc201911051331</version>
+  <version>3.15.100.lgc201911151816</version>
   <packaging>eclipse-plugin</packaging>
 
   <properties>
