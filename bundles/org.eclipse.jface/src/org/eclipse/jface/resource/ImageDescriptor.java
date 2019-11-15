@@ -14,7 +14,6 @@
 package org.eclipse.jface.resource;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -186,13 +185,13 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 				connection.connect();
 				return new SvgImageDescriptor(svgUrl, 16);
 			} catch (IOException e) {
-				if (url.toString().contains("/CommonButton/")) { //$NON-NLS-1$
-					try {
-						return new SvgImageDescriptor(
-								new URL("platform:/plugin/com.lgc.icons/com/lgc/icons/Display/draw_pies.svg"), 120); //$NON-NLS-1$
-					} catch (MalformedURLException e1) {
-					}
-				}
+//				if (url.toString().contains("/CommonButton/")) { //$NON-NLS-1$
+//					try {
+//						return new SvgImageDescriptor(
+//								new URL("platform:/plugin/com.lgc.icons/com/lgc/icons/Display/draw_pies.svg"), 120); //$NON-NLS-1$
+//					} catch (MalformedURLException e1) {
+//					}
+//				}
 			}
 		}
 
