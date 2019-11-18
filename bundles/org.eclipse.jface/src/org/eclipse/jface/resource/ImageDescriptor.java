@@ -13,9 +13,7 @@
  *******************************************************************************/
 package org.eclipse.jface.resource;
 
-import java.io.IOException;
 import java.net.URL;
-import java.net.URLConnection;
 
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Device;
@@ -177,14 +175,14 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 			return getMissingImageDescriptor();
 		}
 		// DEBUG POC code
-		if (url.toString().endsWith(".png")) { //$NON-NLS-1$
-			try {
-				URL svgUrl = new URL(url.toString().replace(".png", ".svg").replace("_16", "").replace("_24", "") //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
-						.replace("_32", "").replace("_10", "").replace("_8", "")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
-				URLConnection connection = svgUrl.openConnection();
-				connection.connect();
-				return new SvgImageDescriptor(svgUrl, 16);
-			} catch (IOException e) {
+//		if (url.toString().endsWith(".png")) { //$NON-NLS-1$
+//			try {
+//				URL svgUrl = new URL(url.toString().replace(".png", ".svg").replace("_16", "").replace("_24", "") //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
+//						.replace("_32", "").replace("_10", "").replace("_8", "")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
+//				URLConnection connection = svgUrl.openConnection();
+//				connection.connect();
+//				return new SvgImageDescriptor(svgUrl, 16);
+//			} catch (IOException e) {
 //				if (url.toString().contains("/CommonButton/")) { //$NON-NLS-1$
 //					try {
 //						return new SvgImageDescriptor(
@@ -192,12 +190,12 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 //					} catch (MalformedURLException e1) {
 //					}
 //				}
-			}
-		}
-
-		if (url.toString().endsWith(".svg")) { //$NON-NLS-1$
-			return new SvgImageDescriptor(url, 16);
-		}
+//			}
+//		}
+//
+//		if (url.toString().endsWith(".svg")) { //$NON-NLS-1$
+//			return new SvgImageDescriptor(url, 16);
+//		}
 		return new URLImageDescriptor(url);
 	}
 
