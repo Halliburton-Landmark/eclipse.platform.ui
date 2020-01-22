@@ -324,6 +324,7 @@ public class WorkbenchWindow implements IWorkbenchWindow {
 			if (event.getProperty(UIEvents.EventTags.ELEMENT) == model
 					&& event.getProperty(UIEvents.EventTags.NEW_VALUE) == null) {
 				// HandledContributionItem.toolItemUpdater.removeWindowRunnable(menuUpdater);
+				eventBroker.unsubscribe(windowWidgetHandler);
 				manageChanges = false;
 				canUpdateMenus = false;
 				menuUpdater = null;
@@ -333,8 +334,6 @@ public class WorkbenchWindow implements IWorkbenchWindow {
 					engine.removeGui(menu);
 					model.setMainMenu(null);
 				}
-
-				eventBroker.unsubscribe(windowWidgetHandler);
 			}
 		}
 	};
