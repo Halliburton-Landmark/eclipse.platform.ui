@@ -14,11 +14,14 @@
 
 package org.eclipse.e4.ui.workbench.addons.dndaddon;
 
+import java.util.List;
+import org.eclipse.e4.ui.model.application.ui.MElementContainer;
 import org.eclipse.e4.ui.model.application.ui.MUIElement;
 import org.eclipse.e4.ui.model.application.ui.advanced.MPlaceholder;
 import org.eclipse.e4.ui.model.application.ui.basic.MPart;
 import org.eclipse.e4.ui.model.application.ui.basic.MPartSashContainerElement;
 import org.eclipse.e4.ui.model.application.ui.basic.MPartStack;
+import org.eclipse.e4.ui.model.application.ui.basic.MStackElement;
 import org.eclipse.e4.ui.workbench.IPresentationEngine;
 import org.eclipse.e4.ui.workbench.modeling.EModelService;
 import org.eclipse.swt.SWT;
@@ -64,7 +67,16 @@ public class DetachedDropAgent extends DropAgent {
 		}
 
 		Rectangle rectangle = getRectangle(dragElement, info);
-
+		MElementContainer<MUIElement> parent = dragElement.getParent();
+		if (parent.getSelectedElement() == dragElement && dragElement instanceof MStackElement) {
+			MUIElement stackElement = dragElement;
+			// avoid activation of any sibling
+			List<MUIElement> children = dragElement.getParent().getChildren();
+			if (children.size() > 1) {
+				children.stream().filter(c -> c != stackElement && c.isToBeRendered() && c.isVisible()).findAny()
+						.ifPresent(c -> dndManager.getModelService().bringToTop(c));
+			}
+		}
 		modelService.detach((MPartSashContainerElement) dragElement, rectangle.x, rectangle.y, rectangle.width,
 				rectangle.height);
 

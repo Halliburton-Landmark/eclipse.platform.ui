@@ -16,17 +16,21 @@
 package org.eclipse.e4.ui.workbench.addons.dndaddon;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.e4.ui.internal.workbench.swt.AbstractPartRenderer;
+import org.eclipse.e4.ui.model.application.ui.MElementContainer;
 import org.eclipse.e4.ui.model.application.ui.MUIElement;
+import org.eclipse.e4.ui.model.application.ui.advanced.MPlaceholder;
 import org.eclipse.e4.ui.model.application.ui.basic.MPart;
 import org.eclipse.e4.ui.model.application.ui.basic.MPartStack;
 import org.eclipse.e4.ui.model.application.ui.basic.MStackElement;
 import org.eclipse.e4.ui.model.application.ui.basic.MWindow;
 import org.eclipse.e4.ui.workbench.IPresentationEngine;
 import org.eclipse.e4.ui.workbench.modeling.EModelService;
+import org.eclipse.e4.ui.workbench.modeling.EPartService;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
@@ -260,7 +264,7 @@ public class StackDropAgent extends DropAgent {
 	 * @param dragElement
 	 * @param dropIndex
 	 */
-	private void dock(MUIElement dragElement, int dropIndex) {
+	private boolean dock(MUIElement dragElement, int dropIndex) {
 
 		List<CTabItem> vItems = getVisibleItems(dropCTF);
 		boolean hiddenTabs = (vItems.size() < dropCTF.getChildren().length);
@@ -317,7 +321,7 @@ public class StackDropAgent extends DropAgent {
 
 				// if we're going before ourselves its a NO-OP
 				if (itemModel == dragElement) {
-					return;
+					return false;
 				}
 				dropIndex = itemModel.getParent().getChildren().indexOf(itemModel);
 				// if the item is dropped at the last position, there is
@@ -337,7 +341,7 @@ public class StackDropAgent extends DropAgent {
 
 				// if we're going before ourselves its a NO-OP
 				if (itemModel == dragElement) {
-					return;
+					return false;
 				}
 
 				dropIndex = itemModel.getParent().getChildren().indexOf(itemModel);
@@ -348,12 +352,65 @@ public class StackDropAgent extends DropAgent {
 				dropIndex = dropChildren.size();
 			}
 		}
-
+		EModelService ms = dndManager.getModelService();
+		MWindow dragElementWin = ms.getTopLevelWindowFor(dragElement);
+		MWindow dropWin = ms.getTopLevelWindowFor(dropStack);
+		boolean switchedWindows = dragElementWin != dropWin;
+		if (switchedWindows) {
+			clearEventQueue();
+		}
 		if (dragElement instanceof MStackElement) {
-			if (dragElement.getParent() != null) {
-				dragElement.getParent().getChildren().remove(dragElement);
+			MElementContainer<MUIElement> parent = dragElement.getParent();
+			if (parent != null) {
+				List<MUIElement> children = parent.getChildren();
+				if (!switchedWindows && children.size() > 1) {
+					children.stream().filter(c -> c != dragElement && c.isToBeRendered() && c.isVisible()).findAny()
+							.ifPresent(c -> ms.bringToTop(c));
+				}
+				children.remove(dragElement);
+				if (switchedWindows) {
+					/**
+					 * find a part to activate in the prior window, preferably:
+					 * <ol>
+					 * <li>an editor in the same part stack
+					 * <li>any editor in a visible stack
+					 * <li>any editor
+					 * <li>a visible view in the same part stack
+					 * <li>any visible view in a visible stack
+					 * <li>null
+					 * </ol>
+					 */
+					EPartService partService = dragElementWin.getContext().get(EPartService.class);
+					MPart activePart = partService.getActivePart();
+					if (activePart == dragElement || !activePart.getTags().contains("Editor")) { //$NON-NLS-1$
+						Collection<MPart> allParts = partService.getParts();
+						if (!allParts.isEmpty()) {
+							List<MPart> editors = allParts.stream().filter(p -> p.getTags().contains("Editor")). //$NON-NLS-1$
+									collect(Collectors.toList());
+							clearEventQueue();
+							if (editors.isEmpty()) {
+								if (activePart == dragElement) {
+									List<MPlaceholder> placeHolders = allParts.stream().map(MUIElement::getCurSharedRef)
+											.filter(ph -> ph != null && ph.getParent().getSelectedElement() == ph)
+											.collect(Collectors.toList());
+									// the first filter should not find anything
+									MPlaceholder ph = placeHolders.stream().filter(p -> p.getParent() == parent)
+											.findAny().orElseGet(() -> placeHolders.stream()
+													.filter(p -> p.getParent().isVisible()).findAny().orElse(null));
+									partService.activate((MPart) (ph != null ? ph.getRef() : null));
+								}
+							} else {
+								partService.activate(editors.stream().filter(p -> p.getParent() == parent).findAny()
+										.orElseGet(() -> editors.stream().filter(p -> p.getParent().isVisible())
+												.findAny().orElseGet(() -> editors.get(0))));
+							}
+						} else {
+							partService.activate(null);
+						}
+					}
+					clearEventQueue();
+				}
 			}
-
 			if (dropIndex >= 0 && dropIndex < dropChildren.size()) {
 				dropChildren.add(dropIndex, (MStackElement) dragElement);
 			} else {
@@ -368,6 +425,9 @@ public class StackDropAgent extends DropAgent {
 
 			// (Re)active the element being dropped
 			dropStack.setSelectedElement((MStackElement) dragElement);
+			if (switchedWindows) {
+				clearEventQueue();
+			}
 		} else {
 			MPartStack stack = (MPartStack) dragElement;
 			MStackElement curSel = stack.getSelectedElement();
@@ -404,6 +464,17 @@ public class StackDropAgent extends DropAgent {
 			// (Re)active the element being dropped
 			dropStack.setSelectedElement(curSel);
 		}
+		if (switchedWindows) {
+			clearEventQueue();
+		}
+		return true;
+	}
+
+	private void clearEventQueue() {
+		Display display = dropCTF.getDisplay();
+		while (display.readAndDispatch()) {
+			// clear events in dropWindow
+		}
 	}
 
 	/**
@@ -435,8 +506,8 @@ public class StackDropAgent extends DropAgent {
 			if (dropIndex != -1) {
 				MUIElement toActivate = dragElement instanceof MPartStack ? ((MPartStack) dragElement)
 						.getSelectedElement() : dragElement;
-				dock(dragElement, dropIndex);
-				reactivatePart(toActivate);
+				if (dock(dragElement, dropIndex))
+					reactivatePart(toActivate);
 			}
 		}
 		return true;

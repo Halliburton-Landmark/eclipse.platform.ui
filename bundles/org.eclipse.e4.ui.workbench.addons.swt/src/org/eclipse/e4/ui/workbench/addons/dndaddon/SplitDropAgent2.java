@@ -14,6 +14,7 @@
 package org.eclipse.e4.ui.workbench.addons.dndaddon;
 
 import java.util.List;
+import org.eclipse.e4.ui.model.application.ui.MElementContainer;
 import org.eclipse.e4.ui.model.application.ui.MUIElement;
 import org.eclipse.e4.ui.model.application.ui.advanced.MArea;
 import org.eclipse.e4.ui.model.application.ui.advanced.MPerspective;
@@ -277,8 +278,6 @@ public class SplitDropAgent2 extends DropAgent {
 		clearFeedback();
 		relToElement = null;
 
-		reactivatePart(dragElement);
-
 		super.dragLeave(dragElement, info);
 	}
 
@@ -295,6 +294,15 @@ public class SplitDropAgent2 extends DropAgent {
 		} else {
 			// wrap it in a stack if it's a part
 			MStackElement stackElement = (MStackElement) dragElement;
+			MElementContainer<MUIElement> parent = stackElement.getParent();
+			if (parent.getSelectedElement() == stackElement) {
+				// avoid activation of any sibling
+				List<MUIElement> children = dragElement.getParent().getChildren();
+				if (children.size() > 1) {
+					children.stream().filter(c -> c != dragElement && c.isToBeRendered() && c.isVisible()).findAny()
+							.ifPresent(c -> dndManager.getModelService().bringToTop(c));
+				}
+			}
 			MPartStack newStack = BasicFactoryImpl.eINSTANCE.createPartStack();
 			newStack.getChildren().add(stackElement);
 			newStack.setSelectedElement(stackElement);
@@ -327,11 +335,7 @@ public class SplitDropAgent2 extends DropAgent {
 				relToElement = persp.getChildren().get(0);
 			}
 		}
-
-		dndManager.getModelService().insert(toInsert, (MPartSashContainerElement) relToElement,
-				where, ratio);
-		// reactivatePart(dragElement);
-
+		dndManager.getModelService().insert(toInsert, (MPartSashContainerElement) relToElement, where, ratio);
 		return true;
 	}
 
