@@ -364,8 +364,14 @@ public class StackDropAgent extends DropAgent {
 			if (parent != null) {
 				List<MUIElement> children = parent.getChildren();
 				if (!switchedWindows && children.size() > 1) {
-					children.stream().filter(c -> c != dragElement && c.isToBeRendered() && c.isVisible()).findAny()
-							.ifPresent(c -> ms.bringToTop(c));
+					MUIElement sibling = children.stream()
+							.filter(c -> c != dragElement && c.getTags().contains("activeEditor")).findAny(). //$NON-NLS-1$
+							orElseGet(() -> children.stream()
+									.filter(c -> c != dragElement && c.isToBeRendered() && c.isVisible()).findAny()
+									.orElse(null));
+					if (sibling != null) {
+						ms.bringToTop(sibling);
+					}
 				}
 				children.remove(dragElement);
 				if (switchedWindows) {
