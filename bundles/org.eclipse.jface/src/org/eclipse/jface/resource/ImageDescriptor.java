@@ -13,7 +13,9 @@
  *******************************************************************************/
 package org.eclipse.jface.resource;
 
+import java.io.IOException;
 import java.net.URL;
+import java.net.URLConnection;
 
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Device;
@@ -61,7 +63,7 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
     /**
      * A small red square used to warn that an image cannot be created.
      */
-    protected static final ImageData DEFAULT_IMAGE_DATA = new ImageData(6, 6,
+	protected static final ImageData DEFAULT_IMAGE_DATA = new ImageData(/* 6, 6, */16, 16,
             1, new PaletteData(new RGB[] { new RGB(255, 0, 0) }));
 
     /**
@@ -164,6 +166,15 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
         return new ImageDataImageDescriptor(img);
     }
 
+	// Debug code, will be removed
+	@SuppressWarnings("boxing")
+	private static final boolean USE_SVG_IMAGES = Boolean.valueOf(System.getProperty("useSvgImages", "false")); //$NON-NLS-1$ //$NON-NLS-2$
+	@SuppressWarnings("boxing")
+	private static final boolean USE_OLD_SVG_IMAGES = Boolean.valueOf(System.getProperty("useOldSvgImages", "false")); //$NON-NLS-1$ //$NON-NLS-2$
+	@SuppressWarnings("boxing")
+	private static final boolean SHOW_MISSING_SVG_IMAGES = Boolean
+			.valueOf(System.getProperty("showMissingSvgImages", "false")); //$NON-NLS-1$ //$NON-NLS-2$
+
     /**
      * Creates and returns a new image descriptor from a URL.
      *
@@ -174,28 +185,49 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 		if (url == null) {
 			return getMissingImageDescriptor();
 		}
-		// DEBUG POC code
-//		if (url.toString().endsWith(".png")) { //$NON-NLS-1$
-//			try {
-//				URL svgUrl = new URL(url.toString().replace(".png", ".svg").replace("_16", "").replace("_24", "") //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
-//						.replace("_32", "").replace("_10", "").replace("_8", "")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
-//				URLConnection connection = svgUrl.openConnection();
-//				connection.connect();
-//				return new SvgImageDescriptor(svgUrl, 16);
-//			} catch (IOException e) {
-//				if (url.toString().contains("/CommonButton/")) { //$NON-NLS-1$
-//					try {
-//						return new SvgImageDescriptor(
-//								new URL("platform:/plugin/com.lgc.icons/com/lgc/icons/Display/draw_pies.svg"), 120); //$NON-NLS-1$
-//					} catch (MalformedURLException e1) {
-//					}
-//				}
-//			}
-//		}
-//
-//		if (url.toString().endsWith(".svg")) { //$NON-NLS-1$
-//			return new SvgImageDescriptor(url, 16);
-//		}
+
+		String urlSpec = url.toString();
+		if (USE_SVG_IMAGES && urlSpec.contains("lgc")) { //$NON-NLS-1$
+			// DEBUG POC code
+			if (urlSpec.endsWith(".png")) { //$NON-NLS-1$
+				String svgUrlSpec = ""; //$NON-NLS-1$
+				try {
+					svgUrlSpec = urlSpec.replace(".png", ".svg") //$NON-NLS-1$ //$NON-NLS-2$
+							.replace("_16", "").replace("_24", "") //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+							.replace("_32", "").replace("_10", "") //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+							.replace("_8", ""); //$NON-NLS-1$ //$NON-NLS-2$
+					URL svgUrl = new URL(svgUrlSpec);
+					URLConnection connection = svgUrl.openConnection();
+					connection.connect();
+					return new SvgImageDescriptor(svgUrl, 16);
+				} catch (IOException e) {
+					// old svg resources have suffix _32
+					if (USE_OLD_SVG_IMAGES) {
+						try {
+							int dotIndex = svgUrlSpec.lastIndexOf(".svg"); //$NON-NLS-1$
+							if (dotIndex != -1) {
+								String oldSvgName = svgUrlSpec.substring(0, dotIndex) + "_32.svg"; //$NON-NLS-1$
+								URL oldSvgUrl = new URL(oldSvgName);
+								URLConnection connection = oldSvgUrl.openConnection();
+								connection.connect();
+								return new SvgImageDescriptor(oldSvgUrl, 16);
+							}
+						} catch (IOException e1) {
+
+						}
+					}
+				}
+			}
+
+			if (urlSpec.endsWith(".svg")) { //$NON-NLS-1$
+				return new SvgImageDescriptor(url, 16);
+			}
+
+			if (SHOW_MISSING_SVG_IMAGES && !urlSpec.contains("/CommonButton/")) { //$NON-NLS-1$
+				return getMissingImageDescriptor();
+			}
+		}
+
 		return new URLImageDescriptor(url);
 	}
 
