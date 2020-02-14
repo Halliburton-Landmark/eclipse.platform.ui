@@ -63,6 +63,8 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
     /**
      * A small red square used to warn that an image cannot be created.
      */
+	// Temporary changed size from 6x6 to 16x16. This helps to save layouts in
+	// SHOW_MISSING_SVG_IMAGES mode
 	protected static final ImageData DEFAULT_IMAGE_DATA = new ImageData(/* 6, 6, */16, 16,
             1, new PaletteData(new RGB[] { new RGB(255, 0, 0) }));
 
@@ -167,13 +169,9 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
     }
 
 	// Debug code, will be removed
-	@SuppressWarnings("boxing")
-	private static final boolean USE_SVG_IMAGES = Boolean.valueOf(System.getProperty("useSvgImages", "false")); //$NON-NLS-1$ //$NON-NLS-2$
-	@SuppressWarnings("boxing")
-	private static final boolean USE_OLD_SVG_IMAGES = Boolean.valueOf(System.getProperty("useOldSvgImages", "false")); //$NON-NLS-1$ //$NON-NLS-2$
-	@SuppressWarnings("boxing")
-	private static final boolean SHOW_MISSING_SVG_IMAGES = Boolean
-			.valueOf(System.getProperty("showMissingSvgImages", "false")); //$NON-NLS-1$ //$NON-NLS-2$
+	private static final boolean USE_SVG_IMAGES = Boolean.getBoolean("svg.enable"); //$NON-NLS-1$
+	private static final boolean USE_OLD_SVG_IMAGES = Boolean.getBoolean("svg.old_32.enable"); //$NON-NLS-1$
+	private static final boolean SHOW_MISSING_SVG_IMAGES = Boolean.getBoolean("svg.show.missing"); //$NON-NLS-1$
 
     /**
      * Creates and returns a new image descriptor from a URL.
