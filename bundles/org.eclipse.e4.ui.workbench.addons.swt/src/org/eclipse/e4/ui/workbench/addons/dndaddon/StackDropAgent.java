@@ -375,6 +375,7 @@ public class StackDropAgent extends DropAgent {
 				}
 				children.remove(dragElement);
 				if (switchedWindows) {
+					dropWin.getParent().setSelectedElement(dropWin);
 					/**
 					 * find a part to activate in the prior window, preferably:
 					 * <ol>
