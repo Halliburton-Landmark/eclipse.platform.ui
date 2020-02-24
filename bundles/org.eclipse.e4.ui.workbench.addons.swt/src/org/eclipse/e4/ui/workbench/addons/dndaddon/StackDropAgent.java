@@ -23,7 +23,6 @@ import java.util.stream.Stream;
 import org.eclipse.e4.ui.internal.workbench.swt.AbstractPartRenderer;
 import org.eclipse.e4.ui.model.application.ui.MElementContainer;
 import org.eclipse.e4.ui.model.application.ui.MUIElement;
-import org.eclipse.e4.ui.model.application.ui.advanced.MPlaceholder;
 import org.eclipse.e4.ui.model.application.ui.basic.MPart;
 import org.eclipse.e4.ui.model.application.ui.basic.MPartStack;
 import org.eclipse.e4.ui.model.application.ui.basic.MStackElement;
@@ -363,59 +362,39 @@ public class StackDropAgent extends DropAgent {
 			MElementContainer<MUIElement> parent = dragElement.getParent();
 			if (parent != null) {
 				List<MUIElement> children = parent.getChildren();
-				if (!switchedWindows && children.size() > 1) {
-					MUIElement sibling = children.stream()
-							.filter(c -> c != dragElement && c.getTags().contains("activeEditor")).findAny(). //$NON-NLS-1$
-							orElseGet(() -> children.stream()
-									.filter(c -> c != dragElement && c.isToBeRendered() && c.isVisible()).findAny()
-									.orElse(null));
-					if (sibling != null) {
-						ms.bringToTop(sibling);
+				EPartService partService = dragElementWin.getContext().get(EPartService.class);
+				MUIElement sibling = children.stream().filter(c -> c != dragElement && c.getTags().contains("Editor")) //$NON-NLS-1$
+						.findAny().orElseGet(() -> children.stream()
+								.filter(c -> c != dragElement && c.isToBeRendered() && c.isVisible()).findAny()
+								.orElse(null));
+				if (switchedWindows) {
+					Collection<MPart> sourceWindowParts = partService.getParts();
+					sourceWindowParts.remove(dragElement);
+					if (sibling == null) {
+						if (!activateAnyEditor(partService, sourceWindowParts)) { // then activate a view
+							partService.activate(sourceWindowParts.stream()
+									.filter(p -> partService.isPartVisible(p)).findAny().orElse(null));
+						}
+					} else if (sibling.getTags().contains("Editor")) { //$NON-NLS-1$
+						partService.activate((MPart) sibling);
+					} else { // avoid activating the view by activating any editor in the window
+						if (activateAnyEditor(partService, sourceWindowParts)) {
+							// set selected element to null to avoid activating the sibling part
+							parent.setSelectedElement(null);
+							ms.bringToTop(sibling);
+						} else {
+							partService.activate((MPart) sibling);
+						}
 					}
+				} else if (sibling != null) {
+					// XXX sometimes focus is set in Control.setVisible that activates the part
+					// set selected element to null to avoid activating the sibling part
+					parent.setSelectedElement(null);
+					ms.bringToTop(sibling);
 				}
 				children.remove(dragElement);
 				if (switchedWindows) {
 					dropWin.getParent().setSelectedElement(dropWin);
-					/**
-					 * find a part to activate in the prior window, preferably:
-					 * <ol>
-					 * <li>an editor in the same part stack
-					 * <li>any editor in a visible stack
-					 * <li>any editor
-					 * <li>a visible view in the same part stack
-					 * <li>any visible view in a visible stack
-					 * <li>null
-					 * </ol>
-					 */
-					EPartService partService = dragElementWin.getContext().get(EPartService.class);
-					MPart activePart = partService.getActivePart();
-					if (activePart == dragElement || !activePart.getTags().contains("Editor")) { //$NON-NLS-1$
-						Collection<MPart> allParts = partService.getParts();
-						if (!allParts.isEmpty()) {
-							List<MPart> editors = allParts.stream().filter(p -> p.getTags().contains("Editor")). //$NON-NLS-1$
-									collect(Collectors.toList());
-							clearEventQueue();
-							if (editors.isEmpty()) {
-								if (activePart == dragElement) {
-									List<MPlaceholder> placeHolders = allParts.stream().map(MUIElement::getCurSharedRef)
-											.filter(ph -> ph != null && ph.getParent().getSelectedElement() == ph)
-											.collect(Collectors.toList());
-									// the first filter should not find anything
-									MPlaceholder ph = placeHolders.stream().filter(p -> p.getParent() == parent)
-											.findAny().orElseGet(() -> placeHolders.stream()
-													.filter(p -> p.getParent().isVisible()).findAny().orElse(null));
-									partService.activate((MPart) (ph != null ? ph.getRef() : null));
-								}
-							} else {
-								partService.activate(editors.stream().filter(p -> p.getParent() == parent).findAny()
-										.orElseGet(() -> editors.stream().filter(p -> p.getParent().isVisible())
-												.findAny().orElseGet(() -> editors.get(0))));
-							}
-						} else {
-							partService.activate(null);
-						}
-					}
-					clearEventQueue();
 				}
 			}
 			if (dropIndex >= 0 && dropIndex < dropChildren.size()) {
@@ -432,9 +411,6 @@ public class StackDropAgent extends DropAgent {
 
 			// (Re)active the element being dropped
 			dropStack.setSelectedElement((MStackElement) dragElement);
-			if (switchedWindows) {
-				clearEventQueue();
-			}
 		} else {
 			MPartStack stack = (MPartStack) dragElement;
 			MStackElement curSel = stack.getSelectedElement();
@@ -471,10 +447,46 @@ public class StackDropAgent extends DropAgent {
 			// (Re)active the element being dropped
 			dropStack.setSelectedElement(curSel);
 		}
+		EPartService partService = dropWin.getContext().get(EPartService.class);
 		if (switchedWindows) {
 			clearEventQueue();
+			// XXX sometimes drop window is not the active window
+			// and dragElement is not the active part.
+			dropWin.getParent().setSelectedElement(dropWin);
+			if (partService.getActivePart() != dragElement) {
+				partService.activate((MPart) dragElement);
+			}
 		}
-		return true;
+		return false;
+	}
+
+	/**
+	 * find an editor to activate in the window, preferably:
+	 * <ol>
+	 * <li>any selected editor in a visible stack
+	 * <li>any editor in a visible stack
+	 * <li>any selected editor
+	 * <li>any editor
+	 * </ol>
+	 *
+	 * @param sourceWindowParts
+	 *
+	 * @param dragElement
+	 */
+	private boolean activateAnyEditor(EPartService partService, Collection<MPart> sourceWindowParts) {
+		List<MPart> editors = sourceWindowParts.stream().filter(p -> p.getTags().contains("Editor")). //$NON-NLS-1$
+				collect(Collectors.toList());
+		if (!editors.isEmpty()) {
+			List<MPart> selectedEditors = editors.stream().filter(p -> isSelected(p)).collect(Collectors.toList());
+			partService.activate(selectedEditors.stream().filter(p -> partService.isPartVisible(p)).findAny()
+					.orElseGet(() -> editors.stream().filter(p -> partService.isPartVisible(p)).findAny()
+							.orElseGet(() -> selectedEditors.isEmpty() ? editors.get(0) : selectedEditors.get(0))));
+		}
+		return !editors.isEmpty();
+	}
+
+	private boolean isSelected(MStackElement p) {
+		return p.getParent().getSelectedElement() == p;
 	}
 
 	private void clearEventQueue() {

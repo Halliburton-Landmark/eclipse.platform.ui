@@ -305,6 +305,7 @@ public class SplitDropAgent2 extends DropAgent {
 								.filter(c -> c != dragElement && c.isToBeRendered() && c.isVisible()).findAny()
 								.orElse(null));
 				if (sibling != null) {
+					parent.setSelectedElement(null);
 					modelService.bringToTop(sibling);
 				}
 			}
@@ -341,9 +342,6 @@ public class SplitDropAgent2 extends DropAgent {
 			}
 		}
 		modelService.insert(toInsert, (MPartSashContainerElement) relToElement, where, ratio);
-		if (!draggedStack) {
-			reactivatePart(dragElement);
-		}
 		return true;
 	}
 
