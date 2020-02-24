@@ -53,6 +53,7 @@ import org.eclipse.e4.ui.model.application.ui.MElementContainer;
 import org.eclipse.e4.ui.model.application.ui.MUIElement;
 import org.eclipse.e4.ui.model.application.ui.SideValue;
 import org.eclipse.e4.ui.model.application.ui.basic.MTrimBar;
+import org.eclipse.e4.ui.model.application.ui.basic.MWindow;
 import org.eclipse.e4.ui.model.application.ui.menu.MDirectToolItem;
 import org.eclipse.e4.ui.model.application.ui.menu.MHandledToolItem;
 import org.eclipse.e4.ui.model.application.ui.menu.MToolBar;
@@ -487,6 +488,10 @@ public class ToolBarManagerRenderer extends SWTPartRenderer {
 			ExpressionInfo info = new ExpressionInfo();
 			record.collectInfo(info);
 			updateVariables.addAll(Arrays.asList(info.getAccessedVariableNames()));
+			// see Bug 514277
+			Selector toolbarParent = e -> e instanceof MToolBarElement
+					&& ((MUIElement) ((MToolBarElement) e).getParent()) == toolbarModel;
+			MWindow window = modelService.getTopLevelWindowFor(toolbarModel);
 			final IEclipseContext parentContext = getContext(toolbarModel);
 			parentContext.runAndTrack(new RunAndTrack() {
 				@Override
@@ -497,17 +502,13 @@ public class ToolBarManagerRenderer extends SWTPartRenderer {
 					}
 
 					record.updateVisibility(parentContext.getActiveLeaf());
-					runExternalCode(() -> {
-						manager.update(false);
-						getUpdater().updateContributionItems(e -> {
-							if (e instanceof MToolBarElement) {
-								if (((MUIElement) ((MToolBarElement) e).getParent()) == toolbarModel) {
-									return true;
-								}
-							}
-							return false;
+					// omit update when toolbar window is not active
+					if (window.getParent().getSelectedElement() == window) {
+						runExternalCode(() -> {
+							manager.update(false);
+							getUpdater().updateContributionItems(toolbarParent);
 						});
-					});
+					}
 					return true;
 				}
 			});
