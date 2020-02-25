@@ -465,10 +465,7 @@ public class StackDropAgent extends DropAgent {
 		// when focus control is the CTabFolder,
 		// no focus and subsequent activation occurs.
 		// add this filter to reject all activations.
-		Listener suppressEvents = (e -> {
-			e.type = SWT.None;
-			System.err.println("clobber type to suppress activation in " + e.widget); //$NON-NLS-1$
-		});
+		Listener suppressEvents = (e -> e.type = SWT.None);
 		display.addFilter(SWT.FocusIn, suppressEvents);
 		display.addFilter(SWT.Activate, suppressEvents);
 		try {
