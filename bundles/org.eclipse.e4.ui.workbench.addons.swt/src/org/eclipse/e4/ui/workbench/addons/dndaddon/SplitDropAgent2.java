@@ -14,7 +14,6 @@
 package org.eclipse.e4.ui.workbench.addons.dndaddon;
 
 import java.util.List;
-import org.eclipse.e4.ui.model.application.ui.MElementContainer;
 import org.eclipse.e4.ui.model.application.ui.MUIElement;
 import org.eclipse.e4.ui.model.application.ui.advanced.MArea;
 import org.eclipse.e4.ui.model.application.ui.advanced.MPerspective;
@@ -278,37 +277,24 @@ public class SplitDropAgent2 extends DropAgent {
 		clearFeedback();
 		relToElement = null;
 
+		reactivatePart(dragElement);
+
 		super.dragLeave(dragElement, info);
 	}
 
 	@Override
 	public boolean drop(MUIElement dragElement, DnDInfo info) {
 		MPartSashContainerElement toInsert = (MPartSashContainerElement) dragElement;
-		EModelService modelService = dndManager.getModelService();
-		boolean draggedStack = dragElement instanceof MPartStack;
-		if (draggedStack) {
+		if (dragElement instanceof MPartStack) {
 			// Ensure we restore the stack to the presentation first
 			if (toInsert.getTags().contains(IPresentationEngine.MINIMIZED)) {
 				toInsert.getTags().remove(IPresentationEngine.MINIMIZED);
 			}
+
 			toInsert.getParent().getChildren().remove(toInsert);
 		} else {
 			// wrap it in a stack if it's a part
 			MStackElement stackElement = (MStackElement) dragElement;
-			MElementContainer<MUIElement> parent = stackElement.getParent();
-			if (parent.getSelectedElement() == stackElement) {
-				// avoid activation of any sibling
-				List<MUIElement> children = parent.getChildren();
-				MUIElement sibling = children.stream()
-						.filter(c -> c != dragElement && c.getTags().contains("activeEditor")).findAny(). //$NON-NLS-1$
-						orElseGet(() -> children.stream()
-								.filter(c -> c != dragElement && c.isToBeRendered() && c.isVisible()).findAny()
-								.orElse(null));
-				if (sibling != null) {
-					parent.setSelectedElement(null);
-					modelService.bringToTop(sibling);
-				}
-			}
 			MPartStack newStack = BasicFactoryImpl.eINSTANCE.createPartStack();
 			newStack.getChildren().add(stackElement);
 			newStack.setSelectedElement(stackElement);
@@ -316,7 +302,7 @@ public class SplitDropAgent2 extends DropAgent {
 		}
 
 		// treat the lone editor area stack as if it were the area
-		if (modelService.isLastEditorStack(relToElement)) {
+		if (dndManager.getModelService().isLastEditorStack(relToElement)) {
 			MUIElement targetParent = relToElement.getParent();
 			while (!(targetParent instanceof MArea)) {
 				targetParent = targetParent.getParent();
@@ -341,7 +327,11 @@ public class SplitDropAgent2 extends DropAgent {
 				relToElement = persp.getChildren().get(0);
 			}
 		}
-		modelService.insert(toInsert, (MPartSashContainerElement) relToElement, where, ratio);
+
+		dndManager.getModelService().insert(toInsert, (MPartSashContainerElement) relToElement,
+				where, ratio);
+		// reactivatePart(dragElement);
+
 		return true;
 	}
 

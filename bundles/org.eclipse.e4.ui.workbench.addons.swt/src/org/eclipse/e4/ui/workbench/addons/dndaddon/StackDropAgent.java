@@ -16,12 +16,10 @@
 package org.eclipse.e4.ui.workbench.addons.dndaddon;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.e4.ui.internal.workbench.swt.AbstractPartRenderer;
-import org.eclipse.e4.ui.model.application.ui.MElementContainer;
 import org.eclipse.e4.ui.model.application.ui.MUIElement;
 import org.eclipse.e4.ui.model.application.ui.basic.MPart;
 import org.eclipse.e4.ui.model.application.ui.basic.MPartStack;
@@ -29,7 +27,6 @@ import org.eclipse.e4.ui.model.application.ui.basic.MStackElement;
 import org.eclipse.e4.ui.model.application.ui.basic.MWindow;
 import org.eclipse.e4.ui.workbench.IPresentationEngine;
 import org.eclipse.e4.ui.workbench.modeling.EModelService;
-import org.eclipse.e4.ui.workbench.modeling.EPartService;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
@@ -263,7 +260,7 @@ public class StackDropAgent extends DropAgent {
 	 * @param dragElement
 	 * @param dropIndex
 	 */
-	private boolean dock(MUIElement dragElement, int dropIndex) {
+	private void dock(MUIElement dragElement, int dropIndex) {
 
 		List<CTabItem> vItems = getVisibleItems(dropCTF);
 		boolean hiddenTabs = (vItems.size() < dropCTF.getChildren().length);
@@ -320,7 +317,7 @@ public class StackDropAgent extends DropAgent {
 
 				// if we're going before ourselves its a NO-OP
 				if (itemModel == dragElement) {
-					return false;
+					return;
 				}
 				dropIndex = itemModel.getParent().getChildren().indexOf(itemModel);
 				// if the item is dropped at the last position, there is
@@ -340,7 +337,7 @@ public class StackDropAgent extends DropAgent {
 
 				// if we're going before ourselves its a NO-OP
 				if (itemModel == dragElement) {
-					return false;
+					return;
 				}
 
 				dropIndex = itemModel.getParent().getChildren().indexOf(itemModel);
@@ -351,52 +348,12 @@ public class StackDropAgent extends DropAgent {
 				dropIndex = dropChildren.size();
 			}
 		}
-		EModelService ms = dndManager.getModelService();
-		MWindow dragElementWin = ms.getTopLevelWindowFor(dragElement);
-		MWindow dropWin = ms.getTopLevelWindowFor(dropStack);
-		boolean switchedWindows = dragElementWin != dropWin;
-		if (switchedWindows) {
-			clearEventQueue();
-		}
+
 		if (dragElement instanceof MStackElement) {
-			MElementContainer<MUIElement> parent = dragElement.getParent();
-			if (parent != null) {
-				List<MUIElement> children = parent.getChildren();
-				EPartService partService = dragElementWin.getContext().get(EPartService.class);
-				MUIElement sibling = children.stream().filter(c -> c != dragElement && c.getTags().contains("Editor")) //$NON-NLS-1$
-						.findAny().orElseGet(() -> children.stream()
-								.filter(c -> c != dragElement && c.isToBeRendered() && c.isVisible()).findAny()
-								.orElse(null));
-				if (switchedWindows) {
-					Collection<MPart> sourceWindowParts = partService.getParts();
-					sourceWindowParts.remove(dragElement);
-					if (sibling == null) {
-						if (!activateAnyEditor(partService, sourceWindowParts)) { // then activate a view
-							partService.activate(sourceWindowParts.stream()
-									.filter(p -> partService.isPartVisible(p)).findAny().orElse(null));
-						}
-					} else if (sibling.getTags().contains("Editor")) { //$NON-NLS-1$
-						partService.activate((MPart) sibling);
-					} else { // avoid activating the view by activating any editor in the window
-						if (activateAnyEditor(partService, sourceWindowParts)) {
-							// set selected element to null to avoid activating the sibling part
-							parent.setSelectedElement(null);
-							ms.bringToTop(sibling);
-						} else {
-							partService.activate((MPart) sibling);
-						}
-					}
-				} else if (sibling != null) {
-					// XXX sometimes focus is set in Control.setVisible that activates the part
-					// set selected element to null to avoid activating the sibling part
-					parent.setSelectedElement(null);
-					ms.bringToTop(sibling);
-				}
-				children.remove(dragElement);
-				if (switchedWindows) {
-					dropWin.getParent().setSelectedElement(dropWin);
-				}
+			if (dragElement.getParent() != null) {
+				dragElement.getParent().getChildren().remove(dragElement);
 			}
+
 			if (dropIndex >= 0 && dropIndex < dropChildren.size()) {
 				dropChildren.add(dropIndex, (MStackElement) dragElement);
 			} else {
@@ -447,53 +404,6 @@ public class StackDropAgent extends DropAgent {
 			// (Re)active the element being dropped
 			dropStack.setSelectedElement(curSel);
 		}
-		EPartService partService = dropWin.getContext().get(EPartService.class);
-		if (switchedWindows) {
-			clearEventQueue();
-			// XXX sometimes drop window is not the active window
-			// and dragElement is not the active part.
-			dropWin.getParent().setSelectedElement(dropWin);
-			if (partService.getActivePart() != dragElement) {
-				partService.activate((MPart) dragElement);
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * find an editor to activate in the window, preferably:
-	 * <ol>
-	 * <li>any selected editor in a visible stack
-	 * <li>any editor in a visible stack
-	 * <li>any selected editor
-	 * <li>any editor
-	 * </ol>
-	 *
-	 * @param sourceWindowParts
-	 *
-	 * @param dragElement
-	 */
-	private boolean activateAnyEditor(EPartService partService, Collection<MPart> sourceWindowParts) {
-		List<MPart> editors = sourceWindowParts.stream().filter(p -> p.getTags().contains("Editor")). //$NON-NLS-1$
-				collect(Collectors.toList());
-		if (!editors.isEmpty()) {
-			List<MPart> selectedEditors = editors.stream().filter(p -> isSelected(p)).collect(Collectors.toList());
-			partService.activate(selectedEditors.stream().filter(p -> partService.isPartVisible(p)).findAny()
-					.orElseGet(() -> editors.stream().filter(p -> partService.isPartVisible(p)).findAny()
-							.orElseGet(() -> selectedEditors.isEmpty() ? editors.get(0) : selectedEditors.get(0))));
-		}
-		return !editors.isEmpty();
-	}
-
-	private boolean isSelected(MStackElement p) {
-		return p.getParent().getSelectedElement() == p;
-	}
-
-	private void clearEventQueue() {
-		Display display = dropCTF.getDisplay();
-		while (display.readAndDispatch()) {
-			// clear events in dropWindow
-		}
 	}
 
 	/**
@@ -525,8 +435,8 @@ public class StackDropAgent extends DropAgent {
 			if (dropIndex != -1) {
 				MUIElement toActivate = dragElement instanceof MPartStack ? ((MPartStack) dragElement)
 						.getSelectedElement() : dragElement;
-				if (dock(dragElement, dropIndex))
-					reactivatePart(toActivate);
+				dock(dragElement, dropIndex);
+				reactivatePart(toActivate);
 			}
 		}
 		return true;

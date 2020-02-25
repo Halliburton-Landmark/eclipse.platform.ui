@@ -104,11 +104,10 @@ public class PartDragAgent extends DragAgent {
 
 	@Override
 	public void dragFinished(boolean performDrop, DnDInfo info) {
-		super.dragFinished(performDrop, info);
 		if (dragElement instanceof MPart) {
 			EPartService ps = dndManager.getDragWindow().getContext().get(EPartService.class);
-			if (ps.getActivePart() != dragElement)
 			ps.activate((MPart) dragElement);
 		}
+		super.dragFinished(performDrop, info);
 	}
 }
