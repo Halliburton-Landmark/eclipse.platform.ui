@@ -36,6 +36,7 @@ import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Listener;
 
 /**
  * This agent manage drag and drop when dragging a Tab in Eclipse Part Stacks.
@@ -379,18 +380,13 @@ public class StackDropAgent extends DropAgent {
 						partService.activate((MPart) sibling);
 					} else { // avoid activating the view by activating any editor in the window
 						if (activateAnyEditor(partService, sourceWindowParts)) {
-							// set selected element to null to avoid activating the sibling part
-							parent.setSelectedElement(null);
-							ms.bringToTop(sibling);
+							showPart(ms, parent, sibling);
 						} else {
 							partService.activate((MPart) sibling);
 						}
 					}
 				} else if (sibling != null) {
-					// XXX sometimes focus is set in Control.setVisible that activates the part
-					// set selected element to null to avoid activating the sibling part
-					parent.setSelectedElement(null);
-					ms.bringToTop(sibling);
+					showPart(ms, parent, sibling);
 				}
 				children.remove(dragElement);
 				if (switchedWindows) {
@@ -458,6 +454,31 @@ public class StackDropAgent extends DropAgent {
 			}
 		}
 		return false;
+	}
+
+	private void showPart(EModelService ms, MElementContainer<MUIElement> parent, MUIElement sibling) {
+		Display display = dropCTF.getDisplay();
+		// sometimes focus is set in Control.setVisible and a part is activated.
+		// possibly dependent on the current focus control.
+		// when focus control is in the editor Composite,
+		// then Control.setVisible occurs.
+		// when focus control is the CTabFolder,
+		// no focus and subsequent activation occurs.
+		// add this filter to reject all activations.
+		Listener suppressEvents = (e -> {
+			e.type = SWT.None;
+			System.err.println("clobber type to suppress activation in " + e.widget); //$NON-NLS-1$
+		});
+		display.addFilter(SWT.FocusIn, suppressEvents);
+		display.addFilter(SWT.Activate, suppressEvents);
+		try {
+			// set selected element to null to avoid activating the sibling part
+			parent.setSelectedElement(null);
+			ms.bringToTop(sibling);
+		} finally {
+			display.removeFilter(SWT.FocusIn, suppressEvents);
+			display.removeFilter(SWT.Activate, suppressEvents);
+		}
 	}
 
 	/**
