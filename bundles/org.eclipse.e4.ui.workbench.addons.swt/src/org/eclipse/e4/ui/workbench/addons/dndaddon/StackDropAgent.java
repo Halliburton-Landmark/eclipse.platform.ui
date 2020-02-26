@@ -273,7 +273,6 @@ public class StackDropAgent extends DropAgent {
 		List<MStackElement> dropChildren = dropStack.getChildren();
 		int elementIndex = dropChildren.indexOf(dragElement);
 
-
 		// Check if we have a placeholder with same id: we must remove it before
 		// dropping (to avoid bug 410164).
 		// Note 1: for bug 537816 we only want to apply this logic to the views, which
@@ -413,32 +412,33 @@ public class StackDropAgent extends DropAgent {
 			List<MStackElement> kids = stack.getChildren();
 
 			// First move over all *non-selected* elements
-			int selIndex = kids.indexOf(curSel);
-			boolean curSelProcessed = false;
-			while (kids.size() > 1) {
-				// Offset the 'get' to account for skipping 'curSel'
-				MStackElement kid = curSelProcessed ? kids.get(kids.size() - 2) : kids.get(kids.size() - 1);
-				if (kid == curSel) {
-					curSelProcessed = true;
-					continue;
+			int placement = dropIndex;
+			suppressActivationsWhile(() -> {
+				int selIndex = kids.indexOf(curSel);
+				boolean curSelProcessed = false;
+				while (kids.size() > 1) {
+					// Offset the 'get' to account for skipping 'curSel'
+					MStackElement kid = curSelProcessed ? kids.get(kids.size() - 2) : kids.get(kids.size() - 1);
+					if (kid == curSel) {
+						curSelProcessed = true;
+						continue;
+					}
+					kids.remove(kid);
+					if (placement >= 0 && placement < dropChildren.size()) {
+						dropChildren.add(placement, kid);
+					} else {
+						dropChildren.add(kid);
+					}
 				}
-
-				kids.remove(kid);
-				if (dropIndex >= 0 && dropIndex < dropChildren.size()) {
-					dropChildren.add(dropIndex, kid);
+				// Finally, move over the selected element
+				kids.remove(curSel);
+				int curSelIndex = placement + selIndex;
+				if (curSelIndex >= 0 && curSelIndex < dropChildren.size()) {
+					dropChildren.add(curSelIndex, curSel);
 				} else {
-					dropChildren.add(kid);
+					dropChildren.add(curSel);
 				}
-			}
-
-			// Finally, move over the selected element
-			kids.remove(curSel);
-			dropIndex = dropIndex + selIndex;
-			if (dropIndex >= 0 && dropIndex < dropChildren.size()) {
-				dropChildren.add(dropIndex, curSel);
-			} else {
-				dropChildren.add(curSel);
-			}
+			});
 
 			// (Re)active the element being dropped
 			dropStack.setSelectedElement(curSel);
@@ -456,26 +456,33 @@ public class StackDropAgent extends DropAgent {
 		return false;
 	}
 
-	private void showPart(EModelService ms, MElementContainer<MUIElement> parent, MUIElement sibling) {
+	private void suppressActivationsWhile(Runnable runnable) {
 		Display display = dropCTF.getDisplay();
 		// sometimes focus is set in Control.setVisible and a part is activated.
 		// possibly dependent on the current focus control.
-		// when focus control is in the editor Composite,
+		// when focus control is in the editor org.eclipse.swt.awt.SWT_AWT.embeddedFrame
+		// Composite,
 		// then Control.setVisible occurs.
 		// when focus control is the CTabFolder,
 		// no focus and subsequent activation occurs.
 		// add this filter to reject all activations.
-		Listener suppressEvents = (e -> e.type = SWT.None);
+		Listener suppressEvents = e -> e.type = SWT.None;
 		display.addFilter(SWT.FocusIn, suppressEvents);
 		display.addFilter(SWT.Activate, suppressEvents);
 		try {
-			// set selected element to null to avoid activating the sibling part
-			parent.setSelectedElement(null);
-			ms.bringToTop(sibling);
+			runnable.run();
 		} finally {
 			display.removeFilter(SWT.FocusIn, suppressEvents);
 			display.removeFilter(SWT.Activate, suppressEvents);
 		}
+	}
+
+	private void showPart(EModelService ms, MElementContainer<MUIElement> parent, MUIElement sibling) {
+		suppressActivationsWhile(() -> {
+			// set selected element to null to avoid activating the sibling part
+			parent.setSelectedElement(null);
+			ms.bringToTop(sibling);
+		});
 	}
 
 	/**
