@@ -351,6 +351,10 @@ public class StackDropAgent extends DropAgent {
 				dropIndex = dropChildren.size();
 			}
 		}
+		CTabFolder ctf = (CTabFolder) dropStack.getWidget();
+		ctf.setEnabled(false);
+		ctf.setLayoutDeferred(true);
+
 		EModelService ms = dndManager.getModelService();
 		MWindow dragElementWin = ms.getTopLevelWindowFor(dragElement);
 		MWindow dropWin = ms.getTopLevelWindowFor(dropStack);
@@ -423,7 +427,6 @@ public class StackDropAgent extends DropAgent {
 						curSelProcessed = true;
 						continue;
 					}
-					kids.remove(kid);
 					if (placement >= 0 && placement < dropChildren.size()) {
 						dropChildren.add(placement, kid);
 					} else {
@@ -431,7 +434,6 @@ public class StackDropAgent extends DropAgent {
 					}
 				}
 				// Finally, move over the selected element
-				kids.remove(curSel);
 				int curSelIndex = placement + selIndex;
 				if (curSelIndex >= 0 && curSelIndex < dropChildren.size()) {
 					dropChildren.add(curSelIndex, curSel);
@@ -443,6 +445,9 @@ public class StackDropAgent extends DropAgent {
 			// (Re)active the element being dropped
 			dropStack.setSelectedElement(curSel);
 		}
+		ctf.setLayoutDeferred(false);
+		ctf.setEnabled(true);
+
 		EPartService partService = dropWin.getContext().get(EPartService.class);
 		if (switchedWindows) {
 			clearEventQueue();
