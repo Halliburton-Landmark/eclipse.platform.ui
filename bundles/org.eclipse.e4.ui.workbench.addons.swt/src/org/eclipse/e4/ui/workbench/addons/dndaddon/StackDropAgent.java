@@ -417,6 +417,7 @@ public class StackDropAgent extends DropAgent {
 
 			// First move over all *non-selected* elements
 			int placement = dropIndex;
+
 			suppressActivationsWhile(() -> {
 				int selIndex = kids.indexOf(curSel);
 				boolean curSelProcessed = false;
@@ -435,11 +436,14 @@ public class StackDropAgent extends DropAgent {
 				}
 				// Finally, move over the selected element
 				int curSelIndex = placement + selIndex;
+				Control curSelCtrl = (Control) curSel.getWidget();
+				curSelCtrl.setEnabled(false);
 				if (curSelIndex >= 0 && curSelIndex < dropChildren.size()) {
 					dropChildren.add(curSelIndex, curSel);
 				} else {
 					dropChildren.add(curSel);
 				}
+				curSelCtrl.setEnabled(true);
 			});
 
 			// (Re)active the element being dropped
@@ -484,9 +488,14 @@ public class StackDropAgent extends DropAgent {
 
 	private void showPart(EModelService ms, MElementContainer<MUIElement> parent, MUIElement sibling) {
 		suppressActivationsWhile(() -> {
-			// set selected element to null to avoid activating the sibling part
+			// set selected element to null and disable control to avoid activating the
+			// sibling part
+			Control curSelCtrl = (Control) sibling.getWidget();
+			curSelCtrl.setEnabled(false);
+
 			parent.setSelectedElement(null);
 			ms.bringToTop(sibling);
+			curSelCtrl.setEnabled(true);
 		});
 	}
 
