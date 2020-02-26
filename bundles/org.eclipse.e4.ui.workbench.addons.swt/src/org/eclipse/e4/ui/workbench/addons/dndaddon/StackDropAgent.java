@@ -491,11 +491,14 @@ public class StackDropAgent extends DropAgent {
 			// set selected element to null and disable control to avoid activating the
 			// sibling part
 			Control curSelCtrl = (Control) sibling.getWidget();
-			curSelCtrl.setEnabled(false);
-
+			if (curSelCtrl != null) {
+				curSelCtrl.setEnabled(false);
+			}
 			parent.setSelectedElement(null);
 			ms.bringToTop(sibling);
-			curSelCtrl.setEnabled(true);
+			if (curSelCtrl != null) {
+				curSelCtrl.setEnabled(true);
+			}
 		});
 	}
 
