@@ -15,20 +15,32 @@ import org.eclipse.swt.internal.image.SVGFileFormat;
 public class SvgImageDescriptor extends ImageDescriptor {
 
     private URL url;
-    private int renderSize;
+	private int renderWidth;
+	private int renderHeight;
 
 	/**
 	 * @param url
 	 * @param renderSize
 	 */
     public SvgImageDescriptor(URL url, int renderSize) {
+		this(url, renderSize, renderSize);
+	}
+
+	/**
+	 * @param url
+	 * @param width
+	 * @param height
+	 */
+	public SvgImageDescriptor(URL url, int width, int height) {
         this.url = url;
-        this.renderSize = renderSize;
+		this.renderWidth = width;
+		this.renderHeight = height;
     }
 
     @Override
     public ImageData getImageData(int zoom) {
-        return SVGFileFormat.loadImageData(url, renderSize * zoom / 100);
+		int scale = zoom / 100;
+		return SVGFileFormat.loadImageData(url, renderWidth * scale, renderHeight * scale);
     }
 
     @Override

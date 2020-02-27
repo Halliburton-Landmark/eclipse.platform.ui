@@ -14,8 +14,8 @@
 package org.eclipse.jface.resource;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
 
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Device;
@@ -185,40 +185,69 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 		}
 
 		String urlSpec = url.toString();
-		if (USE_SVG_IMAGES && urlSpec.contains("lgc")) { //$NON-NLS-1$
-			// DEBUG POC code
+
+		if (USE_SVG_IMAGES && url.getPath().contains("lgc")) { //$NON-NLS-1$
+
+			int width = 16;
+			int height = 16;
+
+			// get size parameters from query
+			// SVG image can be loaded in desired size using query,
+			// example: platform:/path/toSvg/image.svg?width=100&height=40
+			// if dimensions are missing then default 16x16 will be used
+			String query = url.getQuery();
+			if (query != null) {
+				String[] params = query.split("&"); //$NON-NLS-1$
+				final String widthSeq = "width="; //$NON-NLS-1$
+				final String heightSeq = "height="; //$NON-NLS-1$
+				for (String parameter : params) {
+					if (parameter.contains(widthSeq)) {
+						width = Integer.parseInt(parameter.replace(widthSeq, "")); //$NON-NLS-1$
+					} else if (parameter.contains(heightSeq)) {
+						height = Integer.parseInt(parameter.replace(heightSeq, "")); //$NON-NLS-1$
+					}
+				}
+
+				urlSpec = urlSpec.replace("?" + query, ""); //$NON-NLS-1$ //$NON-NLS-2$
+			}
+
 			if (urlSpec.endsWith(".png")) { //$NON-NLS-1$
+				URL svgUrl = null;
 				String svgUrlSpec = ""; //$NON-NLS-1$
 				try {
 					svgUrlSpec = urlSpec.replace(".png", ".svg") //$NON-NLS-1$ //$NON-NLS-2$
 							.replace("_16", "").replace("_24", "") //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
 							.replace("_32", "").replace("_10", "") //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
 							.replace("_8", ""); //$NON-NLS-1$ //$NON-NLS-2$
-					URL svgUrl = new URL(svgUrlSpec);
-					URLConnection connection = svgUrl.openConnection();
-					connection.connect();
-					return new SvgImageDescriptor(svgUrl, 16);
+					svgUrl = new URL(svgUrlSpec);
+					svgUrl.openConnection().connect();
+
+					urlSpec = svgUrlSpec;
+
 				} catch (IOException e) {
-					// old svg resources have suffix _32
+					// old SVG resources have suffix _32
 					if (USE_OLD_SVG_IMAGES) {
 						try {
 							int dotIndex = svgUrlSpec.lastIndexOf(".svg"); //$NON-NLS-1$
 							if (dotIndex != -1) {
 								String oldSvgName = svgUrlSpec.substring(0, dotIndex) + "_32.svg"; //$NON-NLS-1$
-								URL oldSvgUrl = new URL(oldSvgName);
-								URLConnection connection = oldSvgUrl.openConnection();
-								connection.connect();
-								return new SvgImageDescriptor(oldSvgUrl, 16);
+								svgUrl = new URL(oldSvgName);
+								svgUrl.openConnection().connect();
+
+								urlSpec = oldSvgName;
 							}
 						} catch (IOException e1) {
-
 						}
 					}
 				}
 			}
 
 			if (urlSpec.endsWith(".svg")) { //$NON-NLS-1$
-				return new SvgImageDescriptor(url, 16);
+				try {
+					return new SvgImageDescriptor(new URL(urlSpec), width, height);
+				} catch (MalformedURLException e) {
+					return getMissingImageDescriptor();
+				}
 			}
 
 			if (SHOW_MISSING_SVG_IMAGES && !urlSpec.contains("/CommonButton/")) { //$NON-NLS-1$
