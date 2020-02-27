@@ -351,9 +351,8 @@ public class StackDropAgent extends DropAgent {
 				dropIndex = dropChildren.size();
 			}
 		}
-		CTabFolder ctf = (CTabFolder) dropStack.getWidget();
-		ctf.setEnabled(false);
-		ctf.setLayoutDeferred(true);
+		dropCTF.setEnabled(false);
+		dropCTF.setLayoutDeferred(true);
 
 		EModelService ms = dndManager.getModelService();
 		MWindow dragElementWin = ms.getTopLevelWindowFor(dragElement);
@@ -449,8 +448,9 @@ public class StackDropAgent extends DropAgent {
 			// (Re)active the element being dropped
 			dropStack.setSelectedElement(curSel);
 		}
-		ctf.setLayoutDeferred(false);
-		ctf.setEnabled(true);
+		dropCTF.setLayoutDeferred(false);
+		dropCTF.setEnabled(true);
+		dropCTF.setFocus();
 
 		EPartService partService = dropWin.getContext().get(EPartService.class);
 		if (switchedWindows) {
