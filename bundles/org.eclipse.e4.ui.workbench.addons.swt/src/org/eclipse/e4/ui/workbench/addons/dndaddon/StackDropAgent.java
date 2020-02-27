@@ -455,12 +455,12 @@ public class StackDropAgent extends DropAgent {
 		EPartService partService = dropWin.getContext().get(EPartService.class);
 		if (switchedWindows) {
 			clearEventQueue();
-			// XXX sometimes drop window is not the active window
-			// and dragElement is not the active part.
-			dropWin.getParent().setSelectedElement(dropWin);
-			if (partService.getActivePart() != dragElement) {
-				partService.activate((MPart) dragElement);
-			}
+		}
+		// XXX sometimes drop window is not the active window
+		// and dragElement is not the active part.
+		dropWin.getParent().setSelectedElement(dropWin);
+		if (partService.getActivePart() != dragElement) {
+			partService.activate((MPart) dragElement);
 		}
 		return false;
 	}

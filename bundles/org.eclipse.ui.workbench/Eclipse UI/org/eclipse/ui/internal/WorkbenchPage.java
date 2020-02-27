@@ -475,7 +475,6 @@ public class WorkbenchPage implements IWorkbenchPage {
 	}
 
 	private void updateBroughtToTop(MPart part) {
-		updateActiveEditorSources(part);
 		IWorkbenchPart workbenchPart = getWorkbenchPart(part);
 		if (workbenchPart instanceof IEditorPart) {
 			navigationHistory.markEditor((IEditorPart) workbenchPart);
