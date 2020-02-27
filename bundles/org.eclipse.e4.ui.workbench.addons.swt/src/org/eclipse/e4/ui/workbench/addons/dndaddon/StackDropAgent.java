@@ -34,6 +34,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Listener;
@@ -351,6 +352,7 @@ public class StackDropAgent extends DropAgent {
 				dropIndex = dropChildren.size();
 			}
 		}
+		Control dragControl = (Control) dragElement.getWidget();
 		dropCTF.setEnabled(false);
 		dropCTF.setLayoutDeferred(true);
 
@@ -388,19 +390,24 @@ public class StackDropAgent extends DropAgent {
 						}
 					}
 				} else if (sibling != null) {
+					Composite dragControlParent = dragControl.getParent();
+					dragControlParent.setEnabled(false);
 					showPart(ms, parent, sibling);
+					dragControlParent.setEnabled(true);
 				}
 				children.remove(dragElement);
 				if (switchedWindows) {
 					dropWin.getParent().setSelectedElement(dropWin);
 				}
 			}
-			if (dropIndex >= 0 && dropIndex < dropChildren.size()) {
-				dropChildren.add(dropIndex, (MStackElement) dragElement);
-			} else {
-				dropChildren.add((MStackElement) dragElement);
-			}
-
+			int placement = dropIndex;
+			suppressActivationsWhile(() -> {
+				if (placement >= 0 && placement < dropChildren.size()) {
+					dropChildren.add(placement, (MStackElement) dragElement);
+				} else {
+					dropChildren.add((MStackElement) dragElement);
+				}
+			});
 			// Bug 410164: remove placeholder element with same id from the drop stack to
 			// avoid duplicated elements in same stack
 			if (viewWithSameId != null) {
@@ -448,19 +455,22 @@ public class StackDropAgent extends DropAgent {
 			// (Re)active the element being dropped
 			dropStack.setSelectedElement(curSel);
 		}
-		dropCTF.setLayoutDeferred(false);
-		dropCTF.setEnabled(true);
-		dropCTF.setFocus();
-
-		EPartService partService = dropWin.getContext().get(EPartService.class);
 		if (switchedWindows) {
 			clearEventQueue();
 		}
+		dropCTF.setLayoutDeferred(false);
+		dropCTF.setEnabled(true);
 		// XXX sometimes drop window is not the active window
 		// and dragElement is not the active part.
 		dropWin.getParent().setSelectedElement(dropWin);
-		if (partService.getActivePart() != dragElement) {
-			partService.activate((MPart) dragElement);
+		if (switchedWindows) {
+			EPartService partService = dropWin.getContext().get(EPartService.class);
+			dropCTF.setFocus();
+			if (partService.getActivePart() != dragElement) {
+				partService.activate((MPart) dragElement);
+			}
+		} else {
+			dragControl.setFocus();
 		}
 		return false;
 	}
