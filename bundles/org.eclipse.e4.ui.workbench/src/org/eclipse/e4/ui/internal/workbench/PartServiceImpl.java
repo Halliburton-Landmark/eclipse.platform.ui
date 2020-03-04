@@ -684,6 +684,7 @@ public class PartServiceImpl implements EPartService {
 		activate(part, requiresFocus, true);
 	}
 
+	private MPart partActivating;
 	private void activate(MPart part, boolean requiresFocus, boolean activateBranch) {
 		if (part == null) {
 			if (constructed && activePart != null) {
@@ -695,7 +696,9 @@ public class PartServiceImpl implements EPartService {
 			activePart = part;
 			return;
 		}
-
+		if (partActivating == part) { // avoid recursive activations
+			return;
+		}
 		if (Policy.DEBUG_FOCUS) {
 			Activator.trace(Policy.DEBUG_FOCUS_FLAG, "Activating " + part, null);//$NON-NLS-1$
 		}
@@ -740,26 +743,27 @@ public class PartServiceImpl implements EPartService {
 		if (contextManager != null) {
 			contextManager.deferUpdates(true);
 		}
-
-		MPart lastActivePart = activePart;
-		activePart = part;
-
-		if (constructed && lastActivePart != null && lastActivePart != activePart) {
-			if (Policy.DEBUG_FOCUS) {
-				Activator.trace(Policy.DEBUG_FOCUS_FLAG, "Deactivated: " + lastActivePart, null);//$NON-NLS-1$
-			}
-			firePartDeactivated(lastActivePart);
-		}
-
+		MPart currentActivatingPart = partActivating;
+		partActivating = part;
 		try {
+
+			MPart lastActivePart = activePart;
+			activePart = part;
+			if (constructed && lastActivePart != null && lastActivePart != activePart) {
+				if (Policy.DEBUG_FOCUS) {
+					Activator.trace(Policy.DEBUG_FOCUS_FLAG, "Deactivated: " + lastActivePart, null);//$NON-NLS-1$
+				}
+				firePartDeactivated(lastActivePart);
+			}
+
 			// record any sibling into the activation history if necessary, this will allow it to be
 			// reselected again in the future as it will be an activation candidate in the future,
 			// this
 			// prevents other unrendered elements from being selected arbitrarily which would cause
 			// unwanted bundle activation
 			recordStackActivation(part);
-
 			delegateBringToTop(part);
+
 			window.getParent().setSelectedElement(window);
 
 			partActivationHistory.activate(part, activateBranch);
@@ -774,7 +778,9 @@ public class PartServiceImpl implements EPartService {
 
 			firePartActivated(part);
 			UIEvents.publishEvent(UIEvents.UILifeCycle.ACTIVATE, part);
+
 		} finally {
+			partActivating = currentActivatingPart;
 			if (contextService != null) {
 				contextService.deferUpdates(false);
 			}

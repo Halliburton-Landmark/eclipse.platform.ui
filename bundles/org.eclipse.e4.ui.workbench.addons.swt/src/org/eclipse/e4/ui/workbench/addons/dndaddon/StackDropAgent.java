@@ -34,8 +34,10 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Listener;
 
 /**
  * This agent manage drag and drop when dragging a Tab in Eclipse Part Stacks.
@@ -272,7 +274,6 @@ public class StackDropAgent extends DropAgent {
 		List<MStackElement> dropChildren = dropStack.getChildren();
 		int elementIndex = dropChildren.indexOf(dragElement);
 
-
 		// Check if we have a placeholder with same id: we must remove it before
 		// dropping (to avoid bug 410164).
 		// Note 1: for bug 537816 we only want to apply this logic to the views, which
@@ -351,6 +352,10 @@ public class StackDropAgent extends DropAgent {
 				dropIndex = dropChildren.size();
 			}
 		}
+		Control dragControl = (Control) dragElement.getWidget();
+		dropCTF.setEnabled(false);
+		dropCTF.setLayoutDeferred(true);
+
 		EModelService ms = dndManager.getModelService();
 		MWindow dragElementWin = ms.getTopLevelWindowFor(dragElement);
 		MWindow dropWin = ms.getTopLevelWindowFor(dropStack);
@@ -379,30 +384,30 @@ public class StackDropAgent extends DropAgent {
 						partService.activate((MPart) sibling);
 					} else { // avoid activating the view by activating any editor in the window
 						if (activateAnyEditor(partService, sourceWindowParts)) {
-							// set selected element to null to avoid activating the sibling part
-							parent.setSelectedElement(null);
-							ms.bringToTop(sibling);
+							showPart(ms, parent, sibling);
 						} else {
 							partService.activate((MPart) sibling);
 						}
 					}
 				} else if (sibling != null) {
-					// XXX sometimes focus is set in Control.setVisible that activates the part
-					// set selected element to null to avoid activating the sibling part
-					parent.setSelectedElement(null);
-					ms.bringToTop(sibling);
+					Composite dragControlParent = dragControl.getParent();
+					dragControlParent.setEnabled(false);
+					showPart(ms, parent, sibling);
+					dragControlParent.setEnabled(true);
 				}
 				children.remove(dragElement);
 				if (switchedWindows) {
 					dropWin.getParent().setSelectedElement(dropWin);
 				}
 			}
-			if (dropIndex >= 0 && dropIndex < dropChildren.size()) {
-				dropChildren.add(dropIndex, (MStackElement) dragElement);
-			} else {
-				dropChildren.add((MStackElement) dragElement);
-			}
-
+			int placement = dropIndex;
+			suppressActivationsWhile(() -> {
+				if (placement >= 0 && placement < dropChildren.size()) {
+					dropChildren.add(placement, (MStackElement) dragElement);
+				} else {
+					dropChildren.add((MStackElement) dragElement);
+				}
+			});
 			// Bug 410164: remove placeholder element with same id from the drop stack to
 			// avoid duplicated elements in same stack
 			if (viewWithSameId != null) {
@@ -417,47 +422,94 @@ public class StackDropAgent extends DropAgent {
 			List<MStackElement> kids = stack.getChildren();
 
 			// First move over all *non-selected* elements
-			int selIndex = kids.indexOf(curSel);
-			boolean curSelProcessed = false;
-			while (kids.size() > 1) {
-				// Offset the 'get' to account for skipping 'curSel'
-				MStackElement kid = curSelProcessed ? kids.get(kids.size() - 2) : kids.get(kids.size() - 1);
-				if (kid == curSel) {
-					curSelProcessed = true;
-					continue;
-				}
+			int placement = dropIndex;
 
-				kids.remove(kid);
-				if (dropIndex >= 0 && dropIndex < dropChildren.size()) {
-					dropChildren.add(dropIndex, kid);
+			suppressActivationsWhile(() -> {
+				int selIndex = kids.indexOf(curSel);
+				boolean curSelProcessed = false;
+				while (kids.size() > 1) {
+					// Offset the 'get' to account for skipping 'curSel'
+					MStackElement kid = curSelProcessed ? kids.get(kids.size() - 2) : kids.get(kids.size() - 1);
+					if (kid == curSel) {
+						curSelProcessed = true;
+						continue;
+					}
+					if (placement >= 0 && placement < dropChildren.size()) {
+						dropChildren.add(placement, kid);
+					} else {
+						dropChildren.add(kid);
+					}
+				}
+				// Finally, move over the selected element
+				int curSelIndex = placement + selIndex;
+				Control curSelCtrl = (Control) curSel.getWidget();
+				curSelCtrl.setEnabled(false);
+				if (curSelIndex >= 0 && curSelIndex < dropChildren.size()) {
+					dropChildren.add(curSelIndex, curSel);
 				} else {
-					dropChildren.add(kid);
+					dropChildren.add(curSel);
 				}
-			}
-
-			// Finally, move over the selected element
-			kids.remove(curSel);
-			dropIndex = dropIndex + selIndex;
-			if (dropIndex >= 0 && dropIndex < dropChildren.size()) {
-				dropChildren.add(dropIndex, curSel);
-			} else {
-				dropChildren.add(curSel);
-			}
+				curSelCtrl.setEnabled(true);
+			});
 
 			// (Re)active the element being dropped
 			dropStack.setSelectedElement(curSel);
 		}
-		EPartService partService = dropWin.getContext().get(EPartService.class);
 		if (switchedWindows) {
 			clearEventQueue();
-			// XXX sometimes drop window is not the active window
-			// and dragElement is not the active part.
-			dropWin.getParent().setSelectedElement(dropWin);
+		}
+		dropCTF.setLayoutDeferred(false);
+		dropCTF.setEnabled(true);
+		// XXX sometimes drop window is not the active window
+		// and dragElement is not the active part.
+		dropWin.getParent().setSelectedElement(dropWin);
+		if (switchedWindows) {
+			EPartService partService = dropWin.getContext().get(EPartService.class);
+			dropCTF.setFocus();
 			if (partService.getActivePart() != dragElement) {
 				partService.activate((MPart) dragElement);
 			}
+		} else {
+			dragControl.setFocus();
 		}
 		return false;
+	}
+
+	private void suppressActivationsWhile(Runnable runnable) {
+		Display display = dropCTF.getDisplay();
+		// sometimes focus is set in Control.setVisible and a part is activated.
+		// possibly dependent on the current focus control.
+		// when focus control is in the editor org.eclipse.swt.awt.SWT_AWT.embeddedFrame
+		// Composite,
+		// then Control.setVisible occurs.
+		// when focus control is the CTabFolder,
+		// no focus and subsequent activation occurs.
+		// add this filter to reject all activations.
+		Listener suppressEvents = e -> e.type = SWT.None;
+		display.addFilter(SWT.FocusIn, suppressEvents);
+		display.addFilter(SWT.Activate, suppressEvents);
+		try {
+			runnable.run();
+		} finally {
+			display.removeFilter(SWT.FocusIn, suppressEvents);
+			display.removeFilter(SWT.Activate, suppressEvents);
+		}
+	}
+
+	private void showPart(EModelService ms, MElementContainer<MUIElement> parent, MUIElement sibling) {
+		suppressActivationsWhile(() -> {
+			// set selected element to null and disable control to avoid activating the
+			// sibling part
+			Control curSelCtrl = (Control) sibling.getWidget();
+			if (curSelCtrl != null) {
+				curSelCtrl.setEnabled(false);
+			}
+			parent.setSelectedElement(null);
+			ms.bringToTop(sibling);
+			if (curSelCtrl != null) {
+				curSelCtrl.setEnabled(true);
+			}
+		});
 	}
 
 	/**

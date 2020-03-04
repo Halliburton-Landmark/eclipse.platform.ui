@@ -130,6 +130,10 @@ public final class EvaluationService implements IEvaluationService {
 		};
 		variableFilter.addAll(Arrays.asList(new String[] { ISources.ACTIVE_WORKBENCH_WINDOW_NAME,
 				ISources.ACTIVE_WORKBENCH_WINDOW_SHELL_NAME, ISources.ACTIVE_EDITOR_ID_NAME,
+				// LGC https://www.eclipse.org/forums/index.php?t=msg&th=1089140
+				// IEvaluationService variableFilter Set(Why is ISources.ACTIVE_EDITOR_NAME
+				// omitted?)
+				ISources.ACTIVE_EDITOR_NAME,
 				ISources.ACTIVE_EDITOR_INPUT_NAME, ISources.SHOW_IN_INPUT,
 				ISources.SHOW_IN_SELECTION, ISources.ACTIVE_PART_NAME,
 				ISources.ACTIVE_PART_ID_NAME, ISources.ACTIVE_SITE_NAME,
