@@ -204,15 +204,15 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 			if (urlSpec.endsWith(PNG_EXT)) {
 				String svgUrlSpec = urlSpec.replace(PNG_EXT, SVG_EXT);
 
-				try {
-					// find size suffix and remove it
-					for (String sfx : IMG_SFXS) {
-						if (svgUrlSpec.contains(sfx)) {
-							svgUrlSpec = svgUrlSpec.replace(sfx, ""); //$NON-NLS-1$
-							break;
-						}
+				// find size suffix and remove it
+				for (String sfx : IMG_SFXS) {
+					if (svgUrlSpec.contains(sfx)) {
+						svgUrlSpec = svgUrlSpec.replace(sfx, ""); //$NON-NLS-1$
+						break;
 					}
+				}
 
+				try {
 					new URL(svgUrlSpec).openConnection().connect();
 					urlSpec = svgUrlSpec;
 
@@ -260,10 +260,9 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 		}
 
 		Point size = new Point(SvgImageDescriptor.DEFAULT_SIZE.x, SvgImageDescriptor.DEFAULT_SIZE.y);
-		String[] params = urlQuery.split("&"); //$NON-NLS-1$
 		final String widthSeq = "width="; //$NON-NLS-1$
 		final String heightSeq = "height="; //$NON-NLS-1$
-		for (String parameter : params) {
+		for (String parameter : urlQuery.split("&")) { //$NON-NLS-1$
 			if (parameter.contains(widthSeq)) {
 				size.x = Integer.parseInt(parameter.replace(widthSeq, "")); //$NON-NLS-1$
 			} else if (parameter.contains(heightSeq)) {
@@ -279,11 +278,11 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 	private static final boolean SHOW_MISSING_SVG_IMAGES = Boolean.getBoolean("svg.show.missing"); //$NON-NLS-1$
 
 	// the method will be removed once we will have all SVG assets
+	// old SVG resources have suffix _32
 	private static String getOldSvgUrl(String svgUrlSpec) {
 		try {
 			int dotIndex = svgUrlSpec.lastIndexOf(SVG_EXT);
 			if (dotIndex != -1) {
-				// old SVG resources have suffix _32
 				String oldSvgName = svgUrlSpec.substring(0, dotIndex) + "_32.svg"; //$NON-NLS-1$
 				new URL(oldSvgName).openConnection().connect();
 

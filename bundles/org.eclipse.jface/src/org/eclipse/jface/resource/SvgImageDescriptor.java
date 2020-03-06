@@ -10,7 +10,6 @@ import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.ImageDataProvider;
 import org.eclipse.swt.graphics.PaletteData;
 import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.internal.image.SVGFileFormat;
 import org.eclipse.swt.internal.image.SVGHelper;
 
 /**
@@ -23,8 +22,14 @@ public class SvgImageDescriptor extends ImageDescriptor {
 	private int renderWidth;
 	private int renderHeight;
 
-	/** Default size of image descriptor */
-	public static final Point DEFAULT_SIZE = new Point(16, 16);
+	@SuppressWarnings("boxing")
+	private static final int SIZE_PROPERTY = Integer.getInteger("svg.image.size.default", 16); //$NON-NLS-1$
+
+	/**
+	 * Default size of image descriptor. Can be configurable using system property
+	 * {@code svg.image.size.default}
+	 */
+	public static final Point DEFAULT_SIZE = new Point(SIZE_PROPERTY, SIZE_PROPERTY);
 
 	/**
 	 * @param url
@@ -60,7 +65,7 @@ public class SvgImageDescriptor extends ImageDescriptor {
 			byte[] imageBytes = SVGHelper.loadSvg(url, renderWidth * scale, renderHeight * scale);
 			return new ImageData(new ByteArrayInputStream(imageBytes));
 		} catch (Exception e) {
-			Logger.getLogger(SVGFileFormat.class.getName()).severe("SVG EXCEPTION: " + url.getFile() + " " + e); //$NON-NLS-1$ //$NON-NLS-2$
+			Logger.getLogger(SvgImageDescriptor.class.getName()).severe("SVG EXCEPTION: " + url.getFile() + " " + e); //$NON-NLS-1$ //$NON-NLS-2$
 			return new ImageData(DEFAULT_SIZE.x, DEFAULT_SIZE.y, 24, new PaletteData());
 		}
     }
@@ -76,5 +81,4 @@ public class SvgImageDescriptor extends ImageDescriptor {
 	public URL getURL() {
 		return url;
 	}
-
 }
