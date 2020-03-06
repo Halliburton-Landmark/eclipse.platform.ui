@@ -686,7 +686,7 @@ public class PartServiceImpl implements EPartService {
 
 	private MPart partActivating;
 	private void activate(MPart part, boolean requiresFocus, boolean activateBranch) {
-		if (part == null) {
+		if (part == null && partActivating == null) {
 			if (constructed && activePart != null) {
 				if (Policy.DEBUG_FOCUS) {
 					Activator.trace(Policy.DEBUG_FOCUS_FLAG, "Deactivated: " + activePart, null);//$NON-NLS-1$
@@ -696,7 +696,7 @@ public class PartServiceImpl implements EPartService {
 			activePart = part;
 			return;
 		}
-		if (partActivating == part) { // avoid recursive activations
+		if (partActivating == part) { // avoid recursive activations. (e.g. from focusGui)
 			return;
 		}
 		if (Policy.DEBUG_FOCUS) {
