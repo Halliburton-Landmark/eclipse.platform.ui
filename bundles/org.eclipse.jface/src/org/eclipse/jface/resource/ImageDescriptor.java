@@ -14,8 +14,8 @@
 package org.eclipse.jface.resource;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
 
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Device;
@@ -23,6 +23,7 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.ImageDataProvider;
 import org.eclipse.swt.graphics.PaletteData;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.Display;
 
@@ -168,11 +169,6 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
         return new ImageDataImageDescriptor(img);
     }
 
-	// Debug code, will be removed
-	private static final boolean USE_SVG_IMAGES = Boolean.getBoolean("svg.enable"); //$NON-NLS-1$
-	private static final boolean USE_OLD_SVG_IMAGES = Boolean.getBoolean("svg.old_32.enable"); //$NON-NLS-1$
-	private static final boolean SHOW_MISSING_SVG_IMAGES = Boolean.getBoolean("svg.show.missing"); //$NON-NLS-1$
-
     /**
      * Creates and returns a new image descriptor from a URL.
      *
@@ -184,49 +180,117 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 			return getMissingImageDescriptor();
 		}
 
-		String urlSpec = url.toString();
-		if (USE_SVG_IMAGES && urlSpec.contains("lgc")) { //$NON-NLS-1$
-			// DEBUG POC code
-			if (urlSpec.endsWith(".png")) { //$NON-NLS-1$
-				String svgUrlSpec = ""; //$NON-NLS-1$
-				try {
-					svgUrlSpec = urlSpec.replace(".png", ".svg") //$NON-NLS-1$ //$NON-NLS-2$
-							.replace("_16", "").replace("_24", "") //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
-							.replace("_32", "").replace("_10", "") //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
-							.replace("_8", ""); //$NON-NLS-1$ //$NON-NLS-2$
-					URL svgUrl = new URL(svgUrlSpec);
-					URLConnection connection = svgUrl.openConnection();
-					connection.connect();
-					return new SvgImageDescriptor(svgUrl, 16);
-				} catch (IOException e) {
-					// old svg resources have suffix _32
-					if (USE_OLD_SVG_IMAGES) {
-						try {
-							int dotIndex = svgUrlSpec.lastIndexOf(".svg"); //$NON-NLS-1$
-							if (dotIndex != -1) {
-								String oldSvgName = svgUrlSpec.substring(0, dotIndex) + "_32.svg"; //$NON-NLS-1$
-								URL oldSvgUrl = new URL(oldSvgName);
-								URLConnection connection = oldSvgUrl.openConnection();
-								connection.connect();
-								return new SvgImageDescriptor(oldSvgUrl, 16);
-							}
-						} catch (IOException e1) {
+		ImageDescriptor svgImageDescriptor = getSvgImageDescriptor(url);
 
-						}
+		return svgImageDescriptor != null ? svgImageDescriptor : new URLImageDescriptor(url);
+	}
+
+	private static final String SVG_EXT = ".svg"; //$NON-NLS-1$
+	private static final String PNG_EXT = ".png"; //$NON-NLS-1$
+	private static final String[] IMG_SFXS = new String[] { "_16", "_24", "_32", "_8", "_10", "_48" }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
+
+	private static ImageDescriptor getSvgImageDescriptor(URL url) {
+		if (USE_SVG_IMAGES && url.getPath().contains("lgc")) { //$NON-NLS-1$
+			Point size = SvgImageDescriptor.DEFAULT_SIZE;
+
+			String urlSpec = url.toString();
+
+			String query = url.getQuery();
+			if (query != null) {
+				size = getCustomSizeFromQuery(query);
+				urlSpec = urlSpec.replace("?" + query, ""); //$NON-NLS-1$ //$NON-NLS-2$
+			}
+
+			if (urlSpec.endsWith(PNG_EXT)) {
+				String svgUrlSpec = urlSpec.replace(PNG_EXT, SVG_EXT);
+
+				// find size suffix and remove it
+				for (String sfx : IMG_SFXS) {
+					if (svgUrlSpec.contains(sfx)) {
+						svgUrlSpec = svgUrlSpec.replace(sfx, ""); //$NON-NLS-1$
+						break;
+					}
+				}
+
+				try {
+					new URL(svgUrlSpec).openConnection().connect();
+					urlSpec = svgUrlSpec;
+
+				} catch (IOException e) {
+					if (USE_OLD_SVG_IMAGES) {
+						String oldSvgUrlSpec = getOldSvgUrl(svgUrlSpec);
+						urlSpec = oldSvgUrlSpec != null ? oldSvgUrlSpec : urlSpec;
 					}
 				}
 			}
 
-			if (urlSpec.endsWith(".svg")) { //$NON-NLS-1$
-				return new SvgImageDescriptor(url, 16);
+			if (urlSpec.endsWith(SVG_EXT)) {
+				try {
+					return new SvgImageDescriptor(new URL(urlSpec), size);
+				} catch (MalformedURLException e) {
+					return getMissingImageDescriptor();
+				}
 			}
 
 			if (SHOW_MISSING_SVG_IMAGES && !urlSpec.contains("/CommonButton/")) { //$NON-NLS-1$
 				return getMissingImageDescriptor();
 			}
 		}
+		return null;
+	}
 
-		return new URLImageDescriptor(url);
+	/**
+	 * Get size parameters from query. SVG image can be loaded in desired size using
+	 * query, example:
+	 * <p>
+	 * {@code platform:/path/toSvg/image.svg?width=100&height=40}<br>
+	 * {@code platform:/path/toSvg/image.svg?size=48}
+	 * <p>
+	 * If dimensions are missing then default
+	 * {@link SvgImageDescriptor#DEFAULT_SIZE} will be used
+	 *
+	 * @param urlQuery {@link URL#getQuery()}
+	 * @return Point that contains size values
+	 */
+	private static Point getCustomSizeFromQuery(String urlQuery) {
+		final String sizeSeq = "size="; //$NON-NLS-1$
+		if (urlQuery.contains(sizeSeq)) {
+			int parsedSize = Integer.parseInt(urlQuery.replace(sizeSeq, "")); //$NON-NLS-1$
+			return new Point(parsedSize, parsedSize);
+		}
+
+		Point size = new Point(SvgImageDescriptor.DEFAULT_SIZE.x, SvgImageDescriptor.DEFAULT_SIZE.y);
+		final String widthSeq = "width="; //$NON-NLS-1$
+		final String heightSeq = "height="; //$NON-NLS-1$
+		for (String parameter : urlQuery.split("&")) { //$NON-NLS-1$
+			if (parameter.contains(widthSeq)) {
+				size.x = Integer.parseInt(parameter.replace(widthSeq, "")); //$NON-NLS-1$
+			} else if (parameter.contains(heightSeq)) {
+				size.y = Integer.parseInt(parameter.replace(heightSeq, "")); //$NON-NLS-1$
+			}
+		}
+		return size;
+	}
+
+	// Debug code, will be removed
+	private static final boolean USE_SVG_IMAGES = Boolean.getBoolean("svg.enable"); //$NON-NLS-1$
+	private static final boolean USE_OLD_SVG_IMAGES = Boolean.getBoolean("svg.old_32.enable"); //$NON-NLS-1$
+	private static final boolean SHOW_MISSING_SVG_IMAGES = Boolean.getBoolean("svg.show.missing"); //$NON-NLS-1$
+
+	// the method will be removed once we will have all SVG assets
+	// old SVG resources have suffix _32
+	private static String getOldSvgUrl(String svgUrlSpec) {
+		try {
+			int dotIndex = svgUrlSpec.lastIndexOf(SVG_EXT);
+			if (dotIndex != -1) {
+				String oldSvgName = svgUrlSpec.substring(0, dotIndex) + "_32.svg"; //$NON-NLS-1$
+				new URL(oldSvgName).openConnection().connect();
+
+				return oldSvgName;
+			}
+		} catch (IOException e1) {
+		}
+		return null;
 	}
 
     @Override
