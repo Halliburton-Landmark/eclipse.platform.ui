@@ -386,7 +386,8 @@ public class StackDropAgent extends DropAgent {
 						if (activateAnyEditor(partService, sourceWindowParts)) {
 							showPart(ms, parent, sibling);
 						} else {
-							partService.activate((MPart) sibling);
+							partService.activate(sourceWindowParts.stream().filter(p -> p.getCurSharedRef() == sibling)
+									.findAny().orElse(null));
 						}
 					}
 				} else if (sibling != null) {
