@@ -324,6 +324,7 @@ public class WorkbenchWindow implements IWorkbenchWindow {
 			if (event.getProperty(UIEvents.EventTags.ELEMENT) == model
 					&& event.getProperty(UIEvents.EventTags.NEW_VALUE) == null) {
 				// HandledContributionItem.toolItemUpdater.removeWindowRunnable(menuUpdater);
+				eventBroker.unsubscribe(windowWidgetHandler);
 				manageChanges = false;
 				canUpdateMenus = false;
 				menuUpdater = null;
@@ -333,8 +334,6 @@ public class WorkbenchWindow implements IWorkbenchWindow {
 					engine.removeGui(menu);
 					model.setMainMenu(null);
 				}
-
-				eventBroker.unsubscribe(windowWidgetHandler);
 			}
 		}
 	};
@@ -722,16 +721,18 @@ public class WorkbenchWindow implements IWorkbenchWindow {
 				RunAndTrack menuChangeManager = new RunAndTrack() {
 					@Override
 					public boolean changed(IEclipseContext context) {
-						ExpressionInfo info = new ExpressionInfo();
-						IEclipseContext leafContext = windowContext.getActiveLeaf();
-						MenuManagerRendererFilter.collectInfo(info, mainMenu, renderer, leafContext, true);
-						// if one of these variables change, re-run the RAT
-						for (String name : info.getAccessedVariableNames()) {
-							leafContext.get(name);
-						}
-						if (canUpdateMenus && workbench.getDisplay() != null) {
-							canUpdateMenus = false;
-							workbench.getDisplay().asyncExec(menuUpdater);
+						if (manageChanges) {
+							ExpressionInfo info = new ExpressionInfo();
+							IEclipseContext leafContext = windowContext.getActiveLeaf();
+							MenuManagerRendererFilter.collectInfo(info, mainMenu, renderer, leafContext, true);
+							// if one of these variables change, re-run the RAT
+							for (String name : info.getAccessedVariableNames()) {
+								leafContext.get(name);
+							}
+							if (canUpdateMenus && workbench.getDisplay() != null) {
+								canUpdateMenus = false;
+								workbench.getDisplay().asyncExec(menuUpdater);
+							}
 						}
 						return manageChanges;
 					}
