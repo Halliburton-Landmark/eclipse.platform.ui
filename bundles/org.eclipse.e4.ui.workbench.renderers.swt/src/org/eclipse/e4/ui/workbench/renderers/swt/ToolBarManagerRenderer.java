@@ -491,6 +491,7 @@ public class ToolBarManagerRenderer extends SWTPartRenderer {
 			// see Bug 514277
 			Selector toolbarParent = e -> e instanceof MToolBarElement
 					&& ((MUIElement) ((MToolBarElement) e).getParent()) == toolbarModel;
+			// window is null for toolbars in popup menus
 			MWindow window = modelService.getTopLevelWindowFor(toolbarModel);
 			final IEclipseContext parentContext = getContext(toolbarModel);
 			parentContext.runAndTrack(new RunAndTrack() {
@@ -503,7 +504,7 @@ public class ToolBarManagerRenderer extends SWTPartRenderer {
 
 					record.updateVisibility(parentContext.getActiveLeaf());
 					// omit update when toolbar window is not active
-					if (window.getParent().getSelectedElement() == window) {
+					if (window == null || window.getParent().getSelectedElement() == window) {
 						runExternalCode(() -> {
 							manager.update(false);
 							getUpdater().updateContributionItems(toolbarParent);
