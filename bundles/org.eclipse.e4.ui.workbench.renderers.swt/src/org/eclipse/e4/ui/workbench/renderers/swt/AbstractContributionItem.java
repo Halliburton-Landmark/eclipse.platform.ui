@@ -516,7 +516,7 @@ public abstract class AbstractContributionItem extends ContributionItem {
 				@Override
 				public void run() throws Exception {
 					boolean shouldEnable = canExecuteItem(null);
-					final boolean ourWindow = window.getParent().getSelectedElement() == window;
+					final boolean ourWindow = window == null || window.getParent().getSelectedElement() == window;
 					// omit updating enabled state when contribution item window is not active
 					if (ourWindow && shouldEnable != modelItem.isEnabled()) {
 						modelItem.setEnabled(shouldEnable);
