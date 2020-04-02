@@ -368,10 +368,13 @@ public class StackDropAgent extends DropAgent {
 			if (parent != null) {
 				List<MUIElement> children = parent.getChildren();
 				EPartService partService = dragElementWin.getContext().get(EPartService.class);
-				MUIElement sibling = children.stream().filter(c -> c != dragElement && c.getTags().contains("Editor")) //$NON-NLS-1$
-						.findAny().orElseGet(() -> children.stream()
-								.filter(c -> c != dragElement && c.isToBeRendered() && c.isVisible()).findAny()
-								.orElse(null));
+				List<MUIElement> siblingEditors = children.stream()
+						.filter(c -> c != dragElement && c.getTags().contains("Editor")).collect(Collectors.toList()); //$NON-NLS-1$
+				MUIElement sibling = siblingEditors.stream().filter(e -> e.getTags().contains("activeEditor")) //$NON-NLS-1$
+						.findAny()
+						.orElseGet(() -> siblingEditors.size() > 0 ? siblingEditors.get(0)
+								: children.stream().filter(c -> c != dragElement && c.isToBeRendered() && c.isVisible())
+										.findAny().orElse(null));
 				if (switchedWindows) {
 					Collection<MPart> sourceWindowParts = partService.getParts();
 					sourceWindowParts.remove(dragElement);
