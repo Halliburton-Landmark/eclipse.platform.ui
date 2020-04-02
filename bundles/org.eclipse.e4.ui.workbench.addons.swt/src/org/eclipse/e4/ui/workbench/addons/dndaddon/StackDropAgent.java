@@ -399,9 +399,11 @@ public class StackDropAgent extends DropAgent {
 					showPart(ms, parent, sibling);
 					dragControlParent.setEnabled(true);
 				}
-				children.remove(dragElement);
 				if (switchedWindows) {
 					clearEventQueue();
+				}
+				children.remove(dragElement);
+				if (switchedWindows) {
 					dropWin.getParent().setSelectedElement(dropWin);
 				}
 			}
@@ -418,7 +420,6 @@ public class StackDropAgent extends DropAgent {
 			if (viewWithSameId != null) {
 				dropChildren.remove(viewWithSameId);
 			}
-
 			// (Re)active the element being dropped
 			dropStack.setSelectedElement((MStackElement) dragElement);
 		} else {
