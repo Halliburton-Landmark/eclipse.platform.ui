@@ -305,8 +305,10 @@ public class SplitDropAgent2 extends DropAgent {
 								.filter(c -> c != dragElement && c.isToBeRendered() && c.isVisible()).findAny()
 								.orElse(null));
 				if (sibling != null) {
-					parent.setSelectedElement(null);
-					modelService.bringToTop(sibling);
+					suppressActivationsWhile(() -> {
+						parent.setSelectedElement(null);
+						modelService.bringToTop(sibling);
+					});
 				}
 			}
 			MPartStack newStack = BasicFactoryImpl.eINSTANCE.createPartStack();

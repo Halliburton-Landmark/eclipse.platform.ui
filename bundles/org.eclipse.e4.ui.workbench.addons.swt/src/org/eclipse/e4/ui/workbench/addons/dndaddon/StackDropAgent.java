@@ -34,10 +34,8 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.graphics.Rectangle;
-import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Listener;
 
 /**
  * This agent manage drag and drop when dragging a Tab in Eclipse Part Stacks.
@@ -393,18 +391,16 @@ public class StackDropAgent extends DropAgent {
 									.findAny().orElse(null));
 						}
 					}
-				} else if (sibling != null) {
-					Composite dragControlParent = dragControl.getParent();
-					dragControlParent.setEnabled(false);
-					showPart(ms, parent, sibling);
-					dragControlParent.setEnabled(true);
-				}
-				if (switchedWindows) {
 					clearEventQueue();
+				} else if (sibling != null) {
+					showPart(ms, parent, sibling);
 				}
 				children.remove(dragElement);
 				if (switchedWindows) {
-					dropWin.getParent().setSelectedElement(dropWin);
+					suppressActivationsWhile(() -> {
+						dropWin.getContext().activateBranch();
+						dropWin.getParent().setSelectedElement(dropWin);
+					});
 				}
 			}
 			int placement = dropIndex;
@@ -473,7 +469,9 @@ public class StackDropAgent extends DropAgent {
 			EPartService partService = dropWin.getContext().get(EPartService.class);
 			dropCTF.setFocus();
 			if (partService.getActivePart() != dragElement) {
-				partService.activate((MPart) dragElement);
+				MPart editor = (MPart) dragElement;
+				editor.getContext().activateBranch();
+				partService.activate(editor);
 			}
 		} else {
 			dragControl.setFocus();
@@ -481,26 +479,6 @@ public class StackDropAgent extends DropAgent {
 		return false;
 	}
 
-	private void suppressActivationsWhile(Runnable runnable) {
-		Display display = dropCTF.getDisplay();
-		// sometimes focus is set in Control.setVisible and a part is activated.
-		// possibly dependent on the current focus control.
-		// when focus control is in the editor org.eclipse.swt.awt.SWT_AWT.embeddedFrame
-		// Composite,
-		// then Control.setVisible occurs.
-		// when focus control is the CTabFolder,
-		// no focus and subsequent activation occurs.
-		// add this filter to reject all activations.
-		Listener suppressEvents = e -> e.type = SWT.None;
-		display.addFilter(SWT.FocusIn, suppressEvents);
-		display.addFilter(SWT.Activate, suppressEvents);
-		try {
-			runnable.run();
-		} finally {
-			display.removeFilter(SWT.FocusIn, suppressEvents);
-			display.removeFilter(SWT.Activate, suppressEvents);
-		}
-	}
 
 	private void showPart(EModelService ms, MElementContainer<MUIElement> parent, MUIElement sibling) {
 		suppressActivationsWhile(() -> {
