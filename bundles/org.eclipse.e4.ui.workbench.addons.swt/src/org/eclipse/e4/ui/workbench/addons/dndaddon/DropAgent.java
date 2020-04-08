@@ -24,6 +24,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Cursor;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Listener;
 
 /**
  *
@@ -100,4 +101,26 @@ abstract class DropAgent {
 	 */
 	public void dispose() {
 	}
+
+	protected void suppressActivationsWhile(Runnable runnable) {
+		// sometimes focus is set in Control.setVisible and a part is activated.
+		// possibly dependent on the current focus control.
+		// when focus control is in the editor org.eclipse.swt.awt.SWT_AWT.embeddedFrame
+		// Composite,
+		// then Control.setVisible occurs.
+		// when focus control is the CTabFolder,
+		// no focus and subsequent activation occurs.
+		// add this filter to reject all activations.
+		Listener suppressEvents = e -> e.type = SWT.None;
+		Display display = dndManager.info.display;
+		display.addFilter(SWT.FocusIn, suppressEvents);
+		display.addFilter(SWT.Activate, suppressEvents);
+		try {
+			runnable.run();
+		} finally {
+			display.removeFilter(SWT.FocusIn, suppressEvents);
+			display.removeFilter(SWT.Activate, suppressEvents);
+		}
+	}
+
 }
