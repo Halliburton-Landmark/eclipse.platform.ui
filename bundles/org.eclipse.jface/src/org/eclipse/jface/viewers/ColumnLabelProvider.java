@@ -14,6 +14,7 @@
 
 package org.eclipse.jface.viewers;
 
+import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Image;
@@ -45,7 +46,7 @@ public class ColumnLabelProvider extends CellLabelProvider implements
 
 	@Override
 	public Font getFont(Object element) {
-		return null;
+		return JFaceResources.getDefaultFont();
 	}
 
 	@Override
