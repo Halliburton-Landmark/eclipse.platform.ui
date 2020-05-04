@@ -46,8 +46,10 @@ class DragAndDropUtil {
 			Object changedElement = e.getProperty(UIEvents.EventTags.ELEMENT);
 			if (changedElement instanceof MApplication) {
 				MWindow window = (MWindow) e.getProperty(UIEvents.EventTags.NEW_VALUE);
-				appWindowZOrder.remove(window);
-				appWindowZOrder.add(0, window);
+				if (window != null) {
+					appWindowZOrder.remove(window);
+					appWindowZOrder.add(0, window);
+				}
 			}
 		});
 		eventBroker.subscribe(UIEvents.ElementContainer.TOPIC_CHILDREN, e -> {
