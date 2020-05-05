@@ -50,6 +50,7 @@ import org.eclipse.e4.ui.model.application.ui.basic.MWindow;
 import org.eclipse.e4.ui.model.application.ui.menu.MToolControl;
 import org.eclipse.e4.ui.workbench.UIEvents;
 import org.eclipse.e4.ui.workbench.modeling.EModelService;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.util.IPropertyChangeListener;
@@ -673,7 +674,15 @@ public class PerspectiveSwitcher {
 			IHandlerService handlerService = workbenchWindow.getService(IHandlerService.class);
 			IStatus status = Status.OK_STATUS;
 			try {
-				handlerService.executeCommand(IWorkbenchCommandConstants.WINDOW_RESET_PERSPECTIVE, null);
+				IWorkbenchWindow wbWindow = workbenchWindow.getWorkbench().getActiveWorkbenchWindow();
+				if (wbWindow != null && wbWindow.getActivePage().getEditorReferences().length >= 1) {
+					handlerService.executeCommand(IWorkbenchCommandConstants.WINDOW_RESET_PERSPECTIVE, null);
+				} else {
+					MessageDialog dialog = new MessageDialog(wbWindow.getShell(), "'Reset' option is disabled!", null,
+							"Since there are no active view parts - 'RESET' option are disabled!",
+							MessageDialog.WARNING, new String[] { "Ok" }, 1);
+					dialog.open();
+				}
 			} catch (ExecutionException e) {
 				status = new Status(IStatus.ERROR, PlatformUI.PLUGIN_ID, e.getMessage(), e);
 			} catch (NotDefinedException e) {
