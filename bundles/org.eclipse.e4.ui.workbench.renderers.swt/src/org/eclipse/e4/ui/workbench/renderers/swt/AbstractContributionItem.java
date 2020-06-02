@@ -27,6 +27,7 @@ import org.eclipse.e4.ui.internal.workbench.swt.Policy;
 import org.eclipse.e4.ui.internal.workbench.swt.WorkbenchSWTActivator;
 import org.eclipse.e4.ui.model.application.ui.MContext;
 import org.eclipse.e4.ui.model.application.ui.MUIElement;
+import org.eclipse.e4.ui.model.application.ui.basic.MWindow;
 import org.eclipse.e4.ui.model.application.ui.menu.ItemType;
 import org.eclipse.e4.ui.model.application.ui.menu.MItem;
 import org.eclipse.e4.ui.model.application.ui.menu.MMenu;
@@ -510,11 +511,14 @@ public abstract class AbstractContributionItem extends ContributionItem {
 
 	private ISafeRunnable getUpdateRunner() {
 		if (updateRunner == null) {
+		    final MWindow window = modelService.getTopLevelWindowFor(getModel());
 			updateRunner = new ISafeRunnable() {
 				@Override
 				public void run() throws Exception {
 					boolean shouldEnable = canExecuteItem(null);
-					if (shouldEnable != modelItem.isEnabled()) {
+					final boolean ourWindow = window == null || window.getParent().getSelectedElement() == window;
+					// omit updating enabled state when contribution item window is not active
+					if (ourWindow && shouldEnable != modelItem.isEnabled()) {
 						modelItem.setEnabled(shouldEnable);
 						update();
 					}

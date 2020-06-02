@@ -64,6 +64,9 @@ public class ToolBarContributionRecord {
 	}
 
 	public void updateVisibility(IEclipseContext context) {
+		MWindow tbWindow = renderer.modelService.getTopLevelWindowFor(toolbarModel);
+		// window is null for toolbars in popup menus
+		boolean ourWindow = tbWindow == null || tbWindow.getParent().getSelectedElement() == tbWindow;
 		ExpressionContext exprContext = new ExpressionContext(context);
 		updateIsVisible(exprContext);
 		HashSet<ToolBarContributionRecord> recentlyUpdated = new HashSet<>();
@@ -72,7 +75,7 @@ public class ToolBarContributionRecord {
 		for (MToolBarElement item : generatedElements) {
 			boolean currentVisibility = computeVisibility(recentlyUpdated,
 					item, exprContext);
-			if (item.isVisible() != currentVisibility) {
+			if (ourWindow && item.isVisible() != currentVisibility) {
 				item.setVisible(currentVisibility);
 				changed = true;
 			}
@@ -80,7 +83,7 @@ public class ToolBarContributionRecord {
 		for (MToolBarElement item : sharedElements) {
 			boolean currentVisibility = computeVisibility(recentlyUpdated,
 					item, exprContext);
-			if (item.isVisible() != currentVisibility) {
+			if (ourWindow && item.isVisible() != currentVisibility) {
 				item.setVisible(currentVisibility);
 				changed = true;
 			}
