@@ -187,13 +187,14 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 
 	private static final String SVG_EXT = ".svg"; //$NON-NLS-1$
 	private static final String PNG_EXT = ".png"; //$NON-NLS-1$
+	private static final String GIF_EXT = ".gif"; //$NON-NLS-1$
 	private static final String[] IMG_SFXS = new String[] { "_16", "_24", "_32", "_8", "_10", "_48" }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
 
 	private static ImageDescriptor getSvgImageDescriptor(URL url) {
 		if (USE_SVG_IMAGES && url.getPath().contains("lgc")) { //$NON-NLS-1$
 			Point size = SvgImageDescriptor.DEFAULT_SIZE;
 
-			String urlSpec = url.toString();
+			String urlSpec = url.toString().toLowerCase();
 
 			String query = url.getQuery();
 			if (query != null) {
@@ -201,9 +202,8 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 				urlSpec = urlSpec.replace("?" + query, ""); //$NON-NLS-1$ //$NON-NLS-2$
 			}
 
-			if (urlSpec.endsWith(PNG_EXT)) {
-				String svgUrlSpec = urlSpec.replace(PNG_EXT, SVG_EXT);
-
+			if (isNoSVGExtention(urlSpec)) {
+				String svgUrlSpec = setSVGExtension(urlSpec);
 				// find size suffix and remove it
 				for (String sfx : IMG_SFXS) {
 					if (svgUrlSpec.contains(sfx)) {
@@ -215,7 +215,6 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 				try {
 					new URL(svgUrlSpec).openConnection().connect();
 					urlSpec = svgUrlSpec;
-
 				} catch (IOException e) {
 					if (USE_OLD_SVG_IMAGES) {
 						String oldSvgUrlSpec = getOldSvgUrl(svgUrlSpec);
@@ -237,6 +236,19 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 			}
 		}
 		return null;
+	}
+
+	private static boolean isNoSVGExtention(String urlSpec) {
+		return urlSpec.endsWith(PNG_EXT) || urlSpec.endsWith(GIF_EXT);
+	}
+
+	private static String setSVGExtension(String urlSpec) {
+		if (urlSpec.endsWith(PNG_EXT)) {
+			urlSpec = urlSpec.replace(PNG_EXT, SVG_EXT);
+		} else if (urlSpec.endsWith(GIF_EXT)) {
+			urlSpec = urlSpec.replace(GIF_EXT, SVG_EXT);
+		}
+		return urlSpec;
 	}
 
 	/**
