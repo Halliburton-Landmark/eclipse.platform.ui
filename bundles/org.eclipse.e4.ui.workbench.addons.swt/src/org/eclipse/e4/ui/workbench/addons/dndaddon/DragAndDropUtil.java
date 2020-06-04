@@ -13,6 +13,19 @@
  *******************************************************************************/
 package org.eclipse.e4.ui.workbench.addons.dndaddon;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import org.eclipse.e4.core.di.annotations.Execute;
+import org.eclipse.e4.core.services.events.IEventBroker;
+import org.eclipse.e4.ui.model.application.MApplication;
+import org.eclipse.e4.ui.model.application.ui.advanced.MPerspective;
+import org.eclipse.e4.ui.model.application.ui.basic.MWindow;
+import org.eclipse.e4.ui.workbench.UIEvents;
+import org.eclipse.e4.ui.workbench.modeling.EModelService;
 import org.eclipse.jface.util.Geometry;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
@@ -23,6 +36,29 @@ import org.eclipse.swt.widgets.Shell;
 
 class DragAndDropUtil {
 	public static final String IGNORE_AS_DROP_TARGET = "ignore_as_drop_target"; //$NON-NLS-1$
+	private static List<MWindow> appWindowZOrder = new ArrayList<>();
+	private static EModelService modelService;
+
+	@Execute
+	void initialize(IEventBroker eventBroker, EModelService ems) {
+		modelService = ems;
+		eventBroker.subscribe(UIEvents.ElementContainer.TOPIC_SELECTEDELEMENT, e -> {
+			Object changedElement = e.getProperty(UIEvents.EventTags.ELEMENT);
+			if (changedElement instanceof MApplication) {
+				MWindow window = (MWindow) e.getProperty(UIEvents.EventTags.NEW_VALUE);
+				if (window != null) {
+					appWindowZOrder.remove(window);
+					appWindowZOrder.add(0, window);
+				}
+			}
+		});
+		eventBroker.subscribe(UIEvents.ElementContainer.TOPIC_CHILDREN, e -> {
+			Object changedElement = e.getProperty(UIEvents.EventTags.ELEMENT);
+			if (changedElement instanceof MApplication && UIEvents.isREMOVE(e)) {
+				UIEvents.asIterable(e, UIEvents.EventTags.OLD_VALUE).forEach(window -> appWindowZOrder.remove(window));
+			}
+		});
+	}
 
 	/**
 	 * Shorthand method. Returns the bounding rectangle for the given control,
@@ -54,35 +90,41 @@ class DragAndDropUtil {
 	 * @return the most specific SWT control at the given location
 	 */
 	public static Control findControl(Display displayToSearch, Point locationToFind) {
-		Shell[] shells = displayToSearch.getShells();
-		fixShellOrder(displayToSearch, shells);
-		return findControl(shells, locationToFind);
-	}
-
-	/**
-	 * Finds the active shell and moves it to the end of the given array, so that
-	 * findControl() will find the controls from the active shell first.
-	 */
-	private static void fixShellOrder(Display display, Shell[] shells) {
-		if (shells.length <= 1) {
-			return;
-		}
-		Shell activeShell = display.getActiveShell();
-		int lastIndex = shells.length - 1;
-		if (activeShell == null || shells[lastIndex] == activeShell) {
-			return;
-		}
-		// Find the index of the active shell and exchange last one with active
-		for (int i = 0; i < shells.length; i++) {
-			if (shells[i] == activeShell) {
-				Shell toMove = shells[lastIndex];
-				shells[i] = toMove;
-				shells[lastIndex] = activeShell;
-				break;
+		Set<Object> visited = new HashSet<>();
+		return appWindowZOrder.stream().map(w -> {
+			Control found = null;
+			Shell shell = w.getContext().getLocal(Shell.class);
+			visited.add(shell);
+			MPerspective activePerspective = modelService.getActivePerspective(w);
+			if (activePerspective != null) {
+				found = activePerspective.getWindows().stream().filter(MWindow::isToBeRendered).map(dw -> {
+					visited.add(dw.getWidget());
+					return findControl(dw.getWidget(), locationToFind);
+				}).filter(Objects::nonNull).findFirst().orElse(null);
 			}
-		}
+			if (found == null) {
+				found = w.getWindows().stream().filter(MWindow::isToBeRendered).map(dw -> {
+					visited.add(dw.getWidget());
+					return findControl(dw.getWidget(), locationToFind);
+				}).filter(Objects::nonNull).findFirst().orElse(null);
+			}
+			return found != null ? found : findControl(shell, locationToFind);
+		}).filter(Objects::nonNull).findFirst().orElseGet(() -> {
+			return Arrays.stream(displayToSearch.getShells()).filter(o -> !visited.contains(o))
+					.map(s -> findControl(s, locationToFind)).filter(Objects::nonNull).findAny().orElse(null);
+		});
 	}
 
+	private static Control findControl(Object toSearch, Point locationToFind) {
+		return toSearch instanceof Shell ? findControl((Shell) toSearch, locationToFind) : null;
+	}
+
+	private static Control findControl(Shell toSearch, Point locationToFind) {
+		return toSearch != null && toSearch.getData(IGNORE_AS_DROP_TARGET) == null && !toSearch.isDisposed()
+				&& toSearch.isVisible() && getDisplayBounds(toSearch).contains(locationToFind)
+						? findControl(toSearch.getChildren(), locationToFind)
+						: null;
+	}
 	/**
 	 * Searches the given list of controls for a control containing the given
 	 * point. If the array contains any composites, those composites will be
@@ -101,10 +143,9 @@ class DragAndDropUtil {
 		for (int idx = toSearch.length - 1; idx >= 0; idx--) {
 			Control next = toSearch[idx];
 
-			if (next.getData(IGNORE_AS_DROP_TARGET) != null) {
+			if (next == null || next.getData(IGNORE_AS_DROP_TARGET) != null) {
 				continue;
 			}
-
 			if (!next.isDisposed() && next.isVisible()) {
 				Rectangle bounds = getDisplayBounds(next);
 
@@ -121,7 +162,6 @@ class DragAndDropUtil {
 				}
 			}
 		}
-
 		return null;
 	}
 
