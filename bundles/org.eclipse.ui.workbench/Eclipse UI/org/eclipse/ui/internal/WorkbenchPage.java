@@ -216,7 +216,6 @@ public class WorkbenchPage implements IWorkbenchPage {
 
 		@Override
 		public void partBroughtToTop(MPart part) {
-			updateBroughtToTop(part);
 			firePartBroughtToTop(part);
 		}
 
@@ -472,54 +471,6 @@ public class WorkbenchPage implements IWorkbenchPage {
 			}
 		}
 		return getActiveEditor();
-	}
-
-	private void updateBroughtToTop(MPart part) {
-		updateActiveEditorSources(part);
-		IWorkbenchPart workbenchPart = getWorkbenchPart(part);
-		if (workbenchPart instanceof IEditorPart) {
-			navigationHistory.markEditor((IEditorPart) workbenchPart);
-		}
-
-		MElementContainer<?> parent = part.getParent();
-		if (parent == null) {
-			MPlaceholder placeholder = part.getCurSharedRef();
-			if (placeholder == null) {
-				return;
-			}
-
-			parent = placeholder.getParent();
-		}
-
-		if (parent instanceof MPartStack) {
-			int newIndex = lastIndexOfContainer(parent);
-			// New index can be -1 if there is no last index
-			if (newIndex >= 0 && part == activationList.get(newIndex)) {
-				return;
-			}
-			activationList.remove(part);
-			if (newIndex >= 0 && newIndex < activationList.size() - 1) {
-				activationList.add(newIndex, part);
-			} else {
-				activationList.add(part);
-			}
-		}
-	}
-
-	private int lastIndexOfContainer(MElementContainer<?> parent) {
-		for (int i = 0; i < activationList.size(); i++) {
-			MPart mPart = activationList.get(i);
-			MElementContainer<MUIElement> container = mPart.getParent();
-			if (container == parent) {
-				return i;
-			} else if (container == null) {
-				MPlaceholder placeholder = mPart.getCurSharedRef();
-				if (placeholder != null && placeholder.getParent() == parent) {
-					return i;
-				}
-			}
-		}
-		return -1;
 	}
 
 	private List<ViewReference> viewReferences = new ArrayList<>();
