@@ -562,7 +562,6 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 		}
 	}
 
-	// need verify
 	void drawUnselectedTab(int itemIndex, GC gc, Rectangle bounds, int state) {
 		if ((state & SWT.HOT) != 0) {
 			int header = shadowEnabled ? 2 : 0;
@@ -706,7 +705,6 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 		return finalArray;
 	}
 
-	// need verify
 	private static int drawCirclePoint(int loop, int xC, int yC, int[] points, int x, int y, CirclePart circlePart) {
 		switch (circlePart) {
 		case RIGHT_BOTTOM:
@@ -741,7 +739,6 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 		return Math.min(255, b);
 	}
 
-	// need verify
 	void drawShadow(final Display display, Rectangle bounds, GC gc) {
 		if (shadowImage == null) {
 			createShadow(display);
