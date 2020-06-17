@@ -17,6 +17,7 @@ import org.eclipse.e4.ui.css.core.dom.properties.Gradient;
 import org.eclipse.e4.ui.css.core.engine.CSSEngine;
 import org.eclipse.e4.ui.css.swt.helpers.CSSSWTColorHelper;
 import org.eclipse.e4.ui.css.swt.properties.AbstractCSSPropertySWTHandler;
+import org.eclipse.e4.ui.internal.css.swt.ICTabRendering;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabFolderRenderer;
 import org.eclipse.swt.graphics.Color;
@@ -34,7 +35,7 @@ AbstractCSSPropertySWTHandler {
 		}
 		CTabFolder folder = (CTabFolder) control;
 		CTabFolderRenderer renderer = folder.getRenderer();
-		if (!(renderer instanceof CTabRendering)) {
+		if (!(renderer instanceof ICTabRendering)) {
 			return;
 		}
 		if (value.getCssValueType() == CSSValue.CSS_PRIMITIVE_VALUE) {
@@ -43,7 +44,7 @@ AbstractCSSPropertySWTHandler {
 			if (newColor == null) {
 				return;
 			}
-			((CTabRendering) renderer).setSelectedTabFill(newColor);
+			((ICTabRendering) renderer).setSelectedTabFill(newColor);
 		} else if (value.getCssValueType() == CSSValue.CSS_VALUE_LIST) {
 			Gradient grad = (Gradient) engine.convert(value, Gradient.class,
 					control.getDisplay());
@@ -53,7 +54,7 @@ AbstractCSSPropertySWTHandler {
 			Color[] colors = CSSSWTColorHelper.getSWTColors(grad,
 					folder.getDisplay(), engine);
 			int[] percents = CSSSWTColorHelper.getPercents(grad);
-			((CTabRendering) renderer).setSelectedTabFill(colors, percents);
+			((ICTabRendering) renderer).setSelectedTabFill(colors, percents);
 		}
 	}
 

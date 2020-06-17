@@ -16,6 +16,7 @@
 package org.eclipse.e4.ui.workbench.renderers.swt;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import javax.inject.Inject;
 import org.eclipse.e4.ui.internal.css.swt.ICTabRendering;
 import org.eclipse.swt.SWT;
@@ -30,6 +31,7 @@ import org.eclipse.swt.graphics.Pattern;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 
 @SuppressWarnings("restriction")
@@ -85,7 +87,7 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 
 	Image shadowImage, toolbarActiveImage, toolbarInactiveImage;
 
-	int cornerSize = 14;
+	int cornerSize = 10;
 
 	boolean shadowEnabled = true;
 	Color shadowColor;
@@ -104,21 +106,58 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 
 	Color tabOutlineColor;
 
+	Color unselectedTabOutlineColor;
+
 	int paddingLeft = 0, paddingRight = 0, paddingTop = 0, paddingBottom = 0;
 
-	private CTabFolderWrapper parentWrapper;
+	private final CTabFolderRendererWrapper rendererWrapper;
+	private final CTabFolderWrapper parentWrapper;
 
-	private Color hotUnselectedTabsColorBackground;
+	private Color unselectedHoverColor;
+
+	private Color selectedHoverBorderColor;
+
+	private Color unselectedHoverBorderColor;
+
+	private Color wrappedTabFolderColor;
+
+	private boolean fillToolbarArea = true;
 
 	@Inject
 	public CTabRendering(CTabFolder parent) {
 		super(parent);
 		parentWrapper = new CTabFolderWrapper(parent);
+		rendererWrapper = new CTabFolderRendererWrapper(this);
 	}
 
 	@Override
 	public void setUnselectedHotTabsColorBackground(Color color) {
-		this.hotUnselectedTabsColorBackground = color;
+		this.unselectedHoverColor = color;
+	}
+
+	@Override
+	public void setUnselectedHoverColor(Color newColor) {
+		this.unselectedHoverColor = newColor;
+	}
+
+	@Override
+	public void setUnselectedHoverBorderColor(Color newColor) {
+		this.unselectedHoverBorderColor = newColor;
+	}
+
+	@Override
+	public void setSelectedHoverBorderColor(Color newColor) {
+		this.selectedHoverBorderColor = newColor;
+	}
+
+	@Override
+	public void setWrappedTabFolderColor(Color newColor) {
+		this.wrappedTabFolderColor = newColor;
+	}
+
+	@Override
+	public void setFillToolbarArea(boolean fillToolbarArea) {
+		this.fillToolbarArea = fillToolbarArea;
 	}
 
 	@Override
@@ -420,9 +459,7 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 		int circY = onBottom ? bounds.y + bounds.height + 1 - header - radius : bounds.y - 1 + radius;
 		int selectionX1, selectionY1, selectionX2, selectionY2;
 		int bottomY = onBottom ? bounds.y - header : bounds.y + bounds.height;
-		if (itemIndex == 0
-				&& bounds.x == -computeTrim(CTabFolderRenderer.PART_HEADER,
-						SWT.NONE, 0, 0, 0, 0).x) {
+		if (itemIndex == 0 && bounds.x == -computeTrim(CTabFolderRenderer.PART_HEADER, SWT.NONE, 0, 0, 0, 0).x) {
 			circX -= 1;
 			points[index++] = circX - radius;
 			points[index++] = bottomY;
@@ -525,6 +562,7 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 		}
 	}
 
+	// need verify
 	void drawUnselectedTab(int itemIndex, GC gc, Rectangle bounds, int state) {
 		if ((state & SWT.HOT) != 0) {
 			int header = shadowEnabled ? 2 : 0;
@@ -592,14 +630,7 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 			gc.setClipping(points[0], onBottom ? bounds.y - header : bounds.y,
 					parent.getSize().x - (shadowEnabled ? SIDE_DROP_WIDTH : 0 + INNER_KEYLINE + OUTER_KEYLINE),
 					bounds.y + bounds.height);
-
-			Color color = hotUnselectedTabsColorBackground;
-			if (color == null) {
-				// Fallback: if color was not set, use white for highlighting
-				// hot tab.
-				color = gc.getDevice().getSystemColor(SWT.COLOR_WHITE);
-			}
-			gc.setBackground(color);
+			gc.setBackground(unselectedHoverColor);
 			int[] tmpPoints = new int[index];
 			System.arraycopy(points, 0, tmpPoints, 0, index);
 			gc.fillPolygon(tmpPoints);
@@ -675,6 +706,7 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 		return finalArray;
 	}
 
+	// need verify
 	private static int drawCirclePoint(int loop, int xC, int yC, int[] points, int x, int y, CirclePart circlePart) {
 		switch (circlePart) {
 		case RIGHT_BOTTOM:
@@ -709,6 +741,7 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 		return Math.min(255, b);
 	}
 
+	// need verify
 	void drawShadow(final Display display, Rectangle bounds, GC gc) {
 		if (shadowImage == null) {
 			createShadow(display);
@@ -823,8 +856,7 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 		return dst;
 	}
 
-	private void convolve(float[] kernel, int[] inPixels, int[] outPixels,
-			int width, int height, boolean alpha) {
+	private void convolve(float[] kernel, int[] inPixels, int[] outPixels, int width, int height, boolean alpha) {
 		int kernelWidth = kernel.length;
 		int kernelMid = kernelWidth / 2;
 		for (int y = 0; y < height; y++) {
@@ -965,6 +997,12 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 	}
 
 	@Override
+	public void setUnselectedTabOutline(Color color) {
+		this.unselectedTabOutlineColor = color;
+		parent.redraw();
+	}
+
+	@Override
 	public void setInnerKeyline(Color color) {
 		this.innerKeyline = color;
 		parent.redraw();
@@ -994,8 +1032,8 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 		drawTabBackground(gc, partHeaderBounds, state, vertical, defaultBackground);
 	}
 
-	private void drawUnselectedTabBackground(GC gc, Rectangle partHeaderBounds,
-			int state, boolean vertical, Color defaultBackground) {
+	private void drawUnselectedTabBackground(GC gc, Rectangle partHeaderBounds, int state, boolean vertical,
+			Color defaultBackground) {
 		if (unselectedTabsColors == null) {
 			boolean selected = (state & SWT.SELECTED) != 0;
 			unselectedTabsColors = selected ? parentWrapper.getSelectionGradientColors()
@@ -1008,20 +1046,20 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 			unselectedTabsPercents = new int[] { 100 };
 		}
 
-		drawBackground(gc, partHeaderBounds.x, partHeaderBounds.y - 1, partHeaderBounds.width,
+		rendererWrapper.drawBackground(gc, partHeaderBounds.x, partHeaderBounds.y - 1, partHeaderBounds.width,
 				partHeaderBounds.height, defaultBackground, unselectedTabsColors, unselectedTabsPercents, vertical);
 	}
 
-	private void drawTabBackground(GC gc, Rectangle partHeaderBounds,
-			int state, boolean vertical, Color defaultBackground) {
+	private void drawTabBackground(GC gc, Rectangle partHeaderBounds, int state, boolean vertical,
+			Color defaultBackground) {
+		boolean selected = (state & SWT.SELECTED) != 0;
 		Color[] colors = selectedTabFillColors;
 		int[] percents = selectedTabFillPercents;
-
-		if (colors != null && colors.length == 2) {
-			colors = new Color[] { colors[1], colors[1] };
+		if (!selected) {
+			colors = unselectedTabsColors;
+			percents = unselectedTabsPercents;
 		}
 		if (colors == null) {
-			boolean selected = (state & SWT.SELECTED) != 0;
 			colors = selected ? parentWrapper.getSelectionGradientColors() : parentWrapper.getGradientColors();
 			percents = selected ? parentWrapper.getSelectionGradientPercents() : parentWrapper.getGradientPercents();
 		}
@@ -1029,96 +1067,50 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 			colors = new Color[] { gc.getDevice().getSystemColor(SWT.COLOR_WHITE) };
 			percents = new int[] { 100 };
 		}
-		drawBackground(gc, partHeaderBounds.x, partHeaderBounds.height - 1, partHeaderBounds.width,
+		if (colors != null) {
+			if (colors.length == 2) {
+				colors = new Color[] { colors[0], colors[1] };
+			} else {
+				colors = new Color[] { colors[0], colors[0] };
+			}
+		}
+
+		rendererWrapper.drawBackground(gc, partHeaderBounds.x, partHeaderBounds.height - 1, partHeaderBounds.width,
 				parent.getBounds().height, defaultBackground, colors, percents, vertical);
+		Control topRight = parent.getTopRight();
+		if (topRight != null) {
+			if (topRight.getBounds().y > 5) {
+				topRight.setBackground(wrappedTabFolderColor == null ? colors[1] : wrappedTabFolderColor);
+
+				if (fillToolbarArea) {
+					colors = new Color[] { wrappedTabFolderColor == null ? colors[1] : wrappedTabFolderColor };
+					percents = new int[] { 100 };
+					rendererWrapper.drawBackground(gc, partHeaderBounds.x, partHeaderBounds.height,
+							partHeaderBounds.width, topRight.getBounds().height, defaultBackground, colors, percents,
+							vertical);
+				}
+			} else {
+				topRight.setBackground(null);
+			}
+		}
 	}
 
-	/*
-	 * Copied the relevant parts from the package private
-	 * org.eclipse.swt.custom.CTabFolderRenderer.drawBackground(GC, int[], int,
-	 * int, int, int, Color, Image, Color[], int[], boolean) method.
-	 */
-	private void drawBackground(GC gc, int x, int y, int width, int height, Color defaultBackground, Color[] colors,
-			int[] percents, boolean vertical) {
-		if (colors != null) {
-			// draw gradient
-			if (colors.length == 1) {
-				Color background = colors[0] != null ? colors[0] : defaultBackground;
-				gc.setBackground(background);
-				gc.fillRectangle(x, y, width, height);
-			} else {
-				if (vertical) {
-					if ((parent.getStyle() & SWT.BOTTOM) != 0) {
-						int pos = 0;
-						if (percents[percents.length - 1] < 100) {
-							pos = (100 - percents[percents.length - 1]) * height / 100;
-							gc.setBackground(defaultBackground);
-							gc.fillRectangle(x, y, width, pos);
-						}
-						Color lastColor = colors[colors.length - 1];
-						if (lastColor == null)
-							lastColor = defaultBackground;
-						for (int i = percents.length - 1; i >= 0; i--) {
-							gc.setForeground(lastColor);
-							lastColor = colors[i];
-							if (lastColor == null)
-								lastColor = defaultBackground;
-							gc.setBackground(lastColor);
-							int percentage = i > 0 ? percents[i] - percents[i - 1] : percents[i];
-							int gradientHeight = percentage * height / 100;
-							gc.fillGradientRectangle(x, y + pos, width, gradientHeight, true);
-							pos += gradientHeight;
-						}
-					} else {
-						Color lastColor = colors[0];
-						if (lastColor == null)
-							lastColor = defaultBackground;
-						int pos = 0;
-						for (int i = 0; i < percents.length; i++) {
-							gc.setForeground(lastColor);
-							lastColor = colors[i + 1];
-							if (lastColor == null)
-								lastColor = defaultBackground;
-							gc.setBackground(lastColor);
-							int percentage = i > 0 ? percents[i] - percents[i - 1] : percents[i];
-							int gradientHeight = percentage * height / 100;
-							gc.fillGradientRectangle(x, y + pos, width, gradientHeight, true);
-							pos += gradientHeight;
-						}
-						if (pos < height) {
-							gc.setBackground(defaultBackground);
-							gc.fillRectangle(x, pos, width, height - pos + 1);
-						}
-					}
-				} else { // horizontal gradient
-					y = 0;
-					height = parent.getSize().y;
-					Color lastColor = colors[0];
-					if (lastColor == null)
-						lastColor = defaultBackground;
-					int pos = 0;
-					for (int i = 0; i < percents.length; ++i) {
-						gc.setForeground(lastColor);
-						lastColor = colors[i + 1];
-						if (lastColor == null)
-							lastColor = defaultBackground;
-						gc.setBackground(lastColor);
-						int gradientWidth = (percents[i] * width / 100) - pos;
-						gc.fillGradientRectangle(x + pos, y, gradientWidth, height, false);
-						pos += gradientWidth;
-					}
-					if (pos < width) {
-						gc.setBackground(defaultBackground);
-						gc.fillRectangle(x + pos, y, width - pos, height);
-					}
-				}
+	private static class CTabFolderRendererWrapper extends ReflectionSupport<CTabFolderRenderer> {
+		private Method drawBackgroundMethod;
+
+		public CTabFolderRendererWrapper(CTabFolderRenderer instance) {
+			super(instance);
+		}
+
+		public void drawBackground(GC gc, int x, int y, int width, int height, Color defaultBackground, Color[] colors,
+				int[] percents, boolean vertical) {
+			if (drawBackgroundMethod == null) {
+				drawBackgroundMethod = getMethod("drawBackground", //$NON-NLS-1$
+						new Class<?>[] { GC.class, int[].class, int.class, int.class, int.class, int.class, Color.class,
+								Image.class, Color[].class, int[].class, boolean.class });
 			}
-		} else {
-			// draw a solid background using default background in shape
-			if ((parent.getStyle() & SWT.NO_BACKGROUND) != 0 || !defaultBackground.equals(parent.getBackground())) {
-				gc.setBackground(defaultBackground);
-				gc.fillRectangle(x, y, width, height);
-			}
+			executeMethod(drawBackgroundMethod, new Object[] { gc, null, x, y, width, height, defaultBackground, null,
+					colors, percents, vertical });
 		}
 	}
 
@@ -1212,6 +1204,34 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 			while (!cls.equals(Object.class)) {
 				try {
 					return cls.getDeclaredField(name);
+				} catch (Exception exc) {
+					cls = cls.getSuperclass();
+				}
+			}
+			return null;
+		}
+
+		protected Object executeMethod(Method method, Object... params) {
+			Object value = null;
+			if (method != null) {
+				boolean accessible = method.isAccessible();
+				try {
+					method.setAccessible(true);
+					value = method.invoke(instance, params);
+				} catch (Exception exc) {
+					// do nothing
+				} finally {
+					method.setAccessible(accessible);
+				}
+			}
+			return value;
+		}
+
+		protected Method getMethod(String name, Class<?>... params) {
+			Class<?> cls = instance.getClass();
+			while (!cls.equals(Object.class)) {
+				try {
+					return cls.getDeclaredMethod(name, params);
 				} catch (Exception exc) {
 					cls = cls.getSuperclass();
 				}
