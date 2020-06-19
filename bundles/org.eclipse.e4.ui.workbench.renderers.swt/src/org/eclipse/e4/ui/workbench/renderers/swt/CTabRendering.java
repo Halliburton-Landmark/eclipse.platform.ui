@@ -272,7 +272,7 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 				if (bounds.width == 0 || bounds.height == 0)
 					return;
 				if ((state & SWT.SELECTED) != 0) {
-					drawSelectedTab(part, gc, bounds);
+					drawSelectedTab(part, gc, bounds, state);
 					state &= ~SWT.BACKGROUND;
 					super.draw(part, state, bounds, gc);
 				} else {
@@ -445,7 +445,7 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 		shape = tempPoints;
 	}
 
-	void drawSelectedTab(int itemIndex, GC gc, Rectangle bounds) {
+	void drawSelectedTab(int itemIndex, GC gc, Rectangle bounds, int state) {
 		if (parent.getSingle() && parent.getItem(itemIndex).isShowing())
 			return;
 
@@ -536,6 +536,10 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 					gc.getDevice().getSystemColor(SWT.COLOR_WHITE));
 			gc.setForegroundPattern(foregroundPattern);
 		}
+		if ((state & SWT.HOT) != 0) {
+			gc.setForeground(selectedHoverBorderColor);
+		}
+
 		gc.drawPolyline(tmpPoints);
 		Rectangle rect = null;
 		gc.setClipping(rect);
@@ -632,15 +636,18 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 			gc.setBackground(unselectedHoverColor);
 			int[] tmpPoints = new int[index];
 			System.arraycopy(points, 0, tmpPoints, 0, index);
-			gc.fillPolygon(tmpPoints);
-			Color tempBorder = new Color(gc.getDevice(), 182, 188, 204);
-			gc.setForeground(tempBorder);
-			tempBorder.dispose();
-			if (active) {
+			if ((state & SWT.HOT) != 0) {
+				gc.fillPolygon(tmpPoints);
+				gc.setForeground(unselectedHoverBorderColor);
 				gc.drawPolyline(tmpPoints);
 			} else {
-				gc.drawLine(inactive[0], inactive[1], inactive[2], inactive[3]);
-				gc.drawLine(inactive[4], inactive[5], inactive[6], inactive[7]);
+				gc.setForeground(unselectedTabOutlineColor);
+				if (active) {
+					gc.drawPolyline(tmpPoints);
+				} else {
+					gc.drawLine(inactive[0], inactive[1], inactive[2], inactive[3]);
+					gc.drawLine(inactive[4], inactive[5], inactive[6], inactive[7]);
+				}
 			}
 
 			Rectangle rect = null;
