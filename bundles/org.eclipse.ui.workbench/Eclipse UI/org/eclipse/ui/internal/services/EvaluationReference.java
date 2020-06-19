@@ -102,18 +102,19 @@ public class EvaluationReference extends RunAndTrack implements IEvaluationRefer
 		if (!postingChanges) {
 			return;
 		}
-		if (!hasRun) {
-			getListener().propertyChange(
-					new PropertyChangeEvent(this, getProperty(), null, Boolean.valueOf(cache)));
-		} else if (!participating) {
-			getListener().propertyChange(
-					new PropertyChangeEvent(this, getProperty(), Boolean.valueOf(value), null));
-		}
-		if (value != cache) {
-			getListener().propertyChange(
-					new PropertyChangeEvent(this, getProperty(), Boolean.valueOf(value), Boolean
-							.valueOf(cache)));
-		}
+		runExternalCode(() -> {
+			if (!hasRun) {
+				getListener()
+						.propertyChange(new PropertyChangeEvent(this, getProperty(), null, Boolean.valueOf(cache)));
+			} else if (!participating) {
+				getListener()
+						.propertyChange(new PropertyChangeEvent(this, getProperty(), Boolean.valueOf(value), null));
+			}
+			if (value != cache) {
+				getListener().propertyChange(
+						new PropertyChangeEvent(this, getProperty(), Boolean.valueOf(value), Boolean.valueOf(cache)));
+			}
+		});
 		hasRun = true;
 	}
 

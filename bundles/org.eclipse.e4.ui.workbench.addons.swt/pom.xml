@@ -19,6 +19,6 @@
   </parent>
   <groupId>org.eclipse.e4</groupId>
   <artifactId>org.eclipse.e4.ui.workbench.addons.swt</artifactId>
-  <version>1.3.400.lgc202004301100</version>
+  <version>1.3.400.gc202006181318</version>
   <packaging>eclipse-plugin</packaging>
 </project>
