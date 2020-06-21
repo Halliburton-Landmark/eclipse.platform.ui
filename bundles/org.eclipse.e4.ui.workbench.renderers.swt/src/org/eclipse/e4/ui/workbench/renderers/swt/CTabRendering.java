@@ -529,15 +529,20 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 		Color gradientLineTop = null;
 		Pattern foregroundPattern = null;
 		if (!active && !onBottom) {
-			RGB blendColor = gc.getDevice().getSystemColor(SWT.COLOR_WIDGET_LIGHT_SHADOW).getRGB();
-			RGB topGradient = blend(blendColor, tabOutlineColor.getRGB(), 40);
-			gradientLineTop = new Color(gc.getDevice(), topGradient);
+			gradientLineTop = getGradientLineTop(gc);
 			foregroundPattern = new Pattern(gc.getDevice(), 0, 0, 0, bounds.height + 1, gradientLineTop,
 					gc.getDevice().getSystemColor(SWT.COLOR_WHITE));
 			gc.setForegroundPattern(foregroundPattern);
 		}
 		if ((state & SWT.HOT) != 0) {
-			gc.setForeground(selectedHoverBorderColor);
+			if (selectedHoverBorderColor == null) {
+				gradientLineTop = getGradientLineTop(gc);
+				foregroundPattern = new Pattern(gc.getDevice(), 0, 0, 0, bounds.height + 1, gradientLineTop,
+						gc.getDevice().getSystemColor(SWT.COLOR_WHITE));
+				gc.setForegroundPattern(foregroundPattern);
+			} else {
+				gc.setForeground(selectedHoverBorderColor);
+			}
 		}
 
 		gc.drawPolyline(tmpPoints);
@@ -633,15 +638,22 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 			gc.setClipping(points[0], onBottom ? bounds.y - header : bounds.y,
 					parent.getSize().x - (shadowEnabled ? SIDE_DROP_WIDTH : 0 + INNER_KEYLINE + OUTER_KEYLINE),
 					bounds.y + bounds.height);
-			gc.setBackground(unselectedHoverColor);
+			Color color = unselectedHoverColor;
+			if (color == null) {
+				// Fallback: if color was not set, use white for highlighting
+				// hot tab. }
+				color = gc.getDevice().getSystemColor(SWT.COLOR_WHITE);
+			}
+			gc.setBackground(color);
 			int[] tmpPoints = new int[index];
 			System.arraycopy(points, 0, tmpPoints, 0, index);
+			Color tempBorder = new Color(gc.getDevice(), 182, 188, 204);
 			if ((state & SWT.HOT) != 0) {
 				gc.fillPolygon(tmpPoints);
-				gc.setForeground(unselectedHoverBorderColor);
+				gc.setForeground(unselectedHoverBorderColor == null ? tempBorder : unselectedHoverBorderColor);
 				gc.drawPolyline(tmpPoints);
 			} else {
-				gc.setForeground(unselectedTabOutlineColor);
+				gc.setForeground(unselectedTabOutlineColor == null ? tempBorder : unselectedTabOutlineColor);
 				if (active) {
 					gc.drawPolyline(tmpPoints);
 				} else {
@@ -649,6 +661,7 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 					gc.drawLine(inactive[4], inactive[5], inactive[6], inactive[7]);
 				}
 			}
+			tempBorder.dispose();
 
 			Rectangle rect = null;
 			gc.setClipping(rect);
@@ -1085,7 +1098,6 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 		if (topRight != null) {
 			if (topRight.getBounds().y > 5) {
 				topRight.setBackground(wrappedTabFolderColor == null ? colors[1] : wrappedTabFolderColor);
-
 				if (fillToolbarArea) {
 					colors = new Color[] { wrappedTabFolderColor == null ? colors[1] : wrappedTabFolderColor };
 					percents = new int[] { 100 };
@@ -1097,6 +1109,13 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 				topRight.setBackground(null);
 			}
 		}
+	}
+
+	private Color getGradientLineTop(GC gc) {
+		RGB blendColor = gc.getDevice().getSystemColor(SWT.COLOR_WIDGET_LIGHT_SHADOW).getRGB();
+		RGB topGradient = blend(blendColor, tabOutlineColor.getRGB(), 40);
+		Color gradientLineTop = new Color(gc.getDevice(), topGradient);
+		return gradientLineTop;
 	}
 
 	private static class CTabFolderRendererWrapper extends ReflectionSupport<CTabFolderRenderer> {
