@@ -164,20 +164,11 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering 
 				x = x - marginWidth - OUTER_KEYLINE - INNER_KEYLINE - sideDropWidth - (cornerSize / 2);
 				width = width + 2 * OUTER_KEYLINE + 2 * INNER_KEYLINE + 2 * marginWidth + 2 * sideDropWidth
 						+ cornerSize;
-				int tabHeight = parent.getTabHeight(); // TODO: Figure out
-				// what
-				// to do about the
-				// +1
-				// TODO: Fix
+				int tabHeight = parent.getTabHeight();
 				if (parent.getMinimized()) {
 					y = onBottom ? y - borderTop - 5 : y - tabHeight - borderTop - 5;
 					height = borderTop + borderBottom + tabHeight;
 				} else {
-					// y = tabFolder.onBottom ? y - marginHeight -
-					// highlight_margin
-					// - borderTop: y - marginHeight - highlight_header -
-					// tabHeight
-					// - borderTop;
 					y = onBottom ? y - marginHeight - borderTop - (cornerSize / 4)
 							: y - marginHeight - tabHeight - borderTop - (cornerSize / 4);
 					height = height + borderBottom + borderTop + 2 * marginHeight + tabHeight + cornerSize / 2
