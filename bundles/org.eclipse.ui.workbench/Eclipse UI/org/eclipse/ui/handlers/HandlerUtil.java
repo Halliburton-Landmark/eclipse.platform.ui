@@ -247,11 +247,16 @@ public class HandlerUtil {
 	 */
 	public static IEditorPart getActiveEditorChecked(ExecutionEvent event)
 			throws ExecutionException {
-		Object o = getVariableChecked(event, ISources.ACTIVE_EDITOR_NAME);
-		if (o == null) {
+		Object o = null;
+		try {
+			o = getVariableChecked(event, ISources.ACTIVE_EDITOR_NAME);
+		} catch (ExecutionException ee) {
 			IWorkbenchWindow ww = getActiveWorkbenchWindow(event);
 			if (ww != null) {
 				o = ww.getActivePage().getActiveEditor();
+			}
+			if (o == null) {
+				throw ee;
 			}
 		}
 		if (!(o instanceof IEditorPart)) {
@@ -288,11 +293,16 @@ public class HandlerUtil {
 	 */
 	public static String getActiveEditorIdChecked(ExecutionEvent event)
 			throws ExecutionException {
-		Object o = getVariableChecked(event, ISources.ACTIVE_EDITOR_ID_NAME);
-		if (o == null) {
+		Object o = null;
+		try {
+			o = getVariableChecked(event, ISources.ACTIVE_EDITOR_ID_NAME);
+		} catch (ExecutionException ee) {
 			IEditorPart e = getActiveEditor(event);
 			if (e != null) {
 				o = e.getEditorSite().getId();
+			}
+			if (o == null) {
+				throw ee;
 			}
 		}
 		if (!(o instanceof String)) {
@@ -331,11 +341,16 @@ public class HandlerUtil {
 	 */
 	public static IEditorInput getActiveEditorInputChecked(ExecutionEvent event)
 			throws ExecutionException {
-		Object o = getVariableChecked(event, ISources.ACTIVE_EDITOR_INPUT_NAME);
-		if (o == null) {
+		Object o = null;
+		try {
+			o = getVariableChecked(event, ISources.ACTIVE_EDITOR_INPUT_NAME);
+		} catch (ExecutionException ee) {
 			IEditorPart e = getActiveEditor(event);
 			if (e != null) {
 				o = e.getEditorInput();
+			}
+			if (o == null) {
+				throw ee;
 			}
 		}
 		if (!(o instanceof IEditorInput)) {
@@ -371,11 +386,16 @@ public class HandlerUtil {
 	 */
 	public static IWorkbenchPart getActivePartChecked(ExecutionEvent event)
 			throws ExecutionException {
-		Object o = getVariableChecked(event, ISources.ACTIVE_PART_NAME);
-		if (o == null) {
+		Object o = null;
+		try {
+			o = getVariableChecked(event, ISources.ACTIVE_PART_NAME);
+		} catch (ExecutionException ee) {
 			IWorkbenchWindow ww = getActiveWorkbenchWindow(event);
 			if (ww != null) {
 				o = ww.getActivePage().getActivePart();
+			}
+			if (o == null) {
+				throw ee;
 			}
 		}
 		if (!(o instanceof IWorkbenchPart)) {
@@ -411,11 +431,16 @@ public class HandlerUtil {
 	 */
 	public static String getActivePartIdChecked(ExecutionEvent event)
 			throws ExecutionException {
-		Object o = getVariableChecked(event, ISources.ACTIVE_PART_ID_NAME);
-		if (o == null) {
+		Object o = null;
+		try {
+			o = getVariableChecked(event, ISources.ACTIVE_PART_ID_NAME);
+		} catch (ExecutionException ee) {
 			IWorkbenchPart p = getActivePart(event);
 			if (p != null) {
 				o = p.getSite().getId();
+			}
+			if (o == null) {
+				throw ee;
 			}
 		}
 		if (!(o instanceof String)) {
@@ -451,11 +476,16 @@ public class HandlerUtil {
 	 */
 	public static IWorkbenchSite getActiveSiteChecked(ExecutionEvent event)
 			throws ExecutionException {
-		Object o = getVariableChecked(event, ISources.ACTIVE_SITE_NAME);
-		if (o == null) {
+		Object o = null;
+		try {
+			o = getVariableChecked(event, ISources.ACTIVE_SITE_NAME);
+		} catch (ExecutionException ee) {
 			IWorkbenchPart p = getActivePart(event);
 			if (p != null) {
 				o = p.getSite();
+			}
+			if (o == null) {
+				throw ee;
 			}
 		}
 		if (!(o instanceof IWorkbenchSite)) {
