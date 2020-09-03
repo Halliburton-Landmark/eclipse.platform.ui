@@ -696,8 +696,7 @@ public class PartServiceImpl implements EPartService {
 			activePart = part;
 			return;
 		}
-		if (partActivating == part) { // avoid recursive activations. (e.g. from focusGui)
-			modelService.bringToTop(part);
+		if (partActivating != null) { // avoid recursive activations. (e.g. from focusGui)
 			return;
 		}
 		if (Policy.DEBUG_FOCUS) {
