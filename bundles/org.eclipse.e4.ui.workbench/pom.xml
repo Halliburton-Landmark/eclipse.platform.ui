@@ -19,6 +19,6 @@
   </parent>
   <groupId>org.eclipse.e4</groupId>
   <artifactId>org.eclipse.e4.ui.workbench</artifactId>
-  <version>1.9.0.lgc202006181318</version>
+  <version>1.9.0.lgc202009041318</version>
   <packaging>eclipse-plugin</packaging>
 </project>
