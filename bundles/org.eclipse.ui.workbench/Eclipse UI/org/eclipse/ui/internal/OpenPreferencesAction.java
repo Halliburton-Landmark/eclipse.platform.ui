@@ -13,6 +13,7 @@
  *******************************************************************************/
 package org.eclipse.ui.internal;
 
+import com.lgc.logging.ActionHelper;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.preference.PreferenceDialog;
 import org.eclipse.ui.IWorkbenchWindow;
@@ -63,6 +64,7 @@ public class OpenPreferencesAction extends Action implements ActionFactory.IWork
 			return;
 		}
 		PreferenceDialog dialog = PreferencesUtil.createPreferenceDialogOn(null, null, null, null);
+		ActionHelper.record("Base.General_UI", "Window->Preferences...", "clicked"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 		dialog.open();
 	}
 
