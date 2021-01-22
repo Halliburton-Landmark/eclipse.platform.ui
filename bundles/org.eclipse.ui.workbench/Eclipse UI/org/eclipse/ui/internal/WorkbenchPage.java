@@ -894,7 +894,11 @@ public class WorkbenchPage implements IWorkbenchPage {
 		} else if (UIEvents.isREMOVE(event)) {
 			if (UIEvents.contains(event, UIEvents.EventTags.OLD_VALUE,
 					org.eclipse.e4.ui.workbench.addons.minmax.TrimStack.MINIMIZED_AND_SHOWING)) {
-				firePartHidden(thePart);
+				MPlaceholder ph = thePart.getCurSharedRef();
+				MUIElement parent = ph == null ? thePart.getParent() : ph.getParent();
+				if (parent.getTags().contains(IPresentationEngine.MINIMIZED)) {
+					firePartHidden(thePart);
+				}
 			}
 		}
 	}
