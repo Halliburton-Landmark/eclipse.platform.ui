@@ -13,7 +13,7 @@
  *     Lars Vogel (Lars.Vogel@gmail.com) - Bug 331690
  *     Dirk Fauth (dirk.fauth@googlemail.com) - Bug 459285
  *     Eugen Neufeld (eneufeld@eclipsesource.com) - Bug 432466, Bug 455568
- *     Christoph LÃ¤ubrich - Bug 365525
+ *     Christoph Läubrich - Bug 365525
  *     Pierre-Yves B. (pyvesdev@gmail.com) - Bug 562747
  ******************************************************************************/
 
@@ -61,6 +61,8 @@ import org.osgi.service.event.Event;
 
 /**
  * Workbench addon that provides methods to minimize, maximize and restore parts in the window
+ *
+ * TODO: integrate com.lgc.eclipse.app.model.MinMaxModelAddon code into this class and delete MinMaxModelAddon.
  */
 public class MinMaxAddon {
 
@@ -668,6 +670,8 @@ public class MinMaxAddon {
 		adjustCTFButtons(element);
 		// Activate a part other than the trimStack so that if the tool item is pressed
 		// immediately it will still open the stack.
+		// Use part service from the element window to avoid bug
+		// https://bugs.eclipse.org/bugs/show_bug.cgi?id=502544
 		MWindow win = MinMaxAddonUtil.getWindowFor(element);
 		EPartService partService = win.getContext().get(EPartService.class);
 		partService.requestActivation();

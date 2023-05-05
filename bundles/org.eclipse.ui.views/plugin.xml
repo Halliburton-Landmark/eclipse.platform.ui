@@ -12,13 +12,13 @@
             id="org.eclipse.ui.views.PropertySheet"
             name="%Views.PropertySheet">
       </view>
-      <view
+      <!--view
             name="%Views.ContentOutline"
             icon="$nl$/icons/full/eview16/outline_co.png"
             category="org.eclipse.ui"
             class="org.eclipse.ui.views.contentoutline.ContentOutline"
             id="org.eclipse.ui.views.ContentOutline">
-      </view>
+      </view-->
    </extension>
      <extension
            point="org.eclipse.ui.menus">

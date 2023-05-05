@@ -18,7 +18,7 @@
  *     Dirk Fauth <dirk.fauth@googlemail.com> - Bug 473063
  *     Stefan Prieschl <stefan.prieschl@gmail.com> - Bug 374132
  *     Paul Pazderski <paul-eclipse@ppazderski.de> - Bug 549361
- *     Christoph Läubrich - Bug 538151
+ *     Christoph L�ubrich - Bug 538151
  *     Dennis Hendriks - Bug 576877
  *******************************************************************************/
 
@@ -216,7 +216,6 @@ public class WorkbenchPage implements IWorkbenchPage {
 
 		@Override
 		public void partBroughtToTop(MPart part) {
-			updateBroughtToTop(part);
 			firePartBroughtToTop(part);
 		}
 
@@ -456,54 +455,6 @@ public class WorkbenchPage implements IWorkbenchPage {
 			}
 		}
 		return getActiveEditor();
-	}
-
-	private void updateBroughtToTop(MPart part) {
-		updateActiveEditorSources(part);
-		IWorkbenchPart workbenchPart = getWorkbenchPart(part);
-		if (workbenchPart instanceof IEditorPart) {
-			navigationHistory.markEditor((IEditorPart) workbenchPart);
-		}
-
-		MElementContainer<?> parent = part.getParent();
-		if (parent == null) {
-			MPlaceholder placeholder = part.getCurSharedRef();
-			if (placeholder == null) {
-				return;
-			}
-
-			parent = placeholder.getParent();
-		}
-
-		if (parent instanceof MPartStack) {
-			int newIndex = lastIndexOfContainer(parent);
-			// New index can be -1 if there is no last index
-			if (newIndex >= 0 && part == activationList.get(newIndex)) {
-				return;
-			}
-			activationList.remove(part);
-			if (newIndex >= 0 && newIndex < activationList.size() - 1) {
-				activationList.add(newIndex, part);
-			} else {
-				activationList.add(part);
-			}
-		}
-	}
-
-	private int lastIndexOfContainer(MElementContainer<?> parent) {
-		for (int i = 0; i < activationList.size(); i++) {
-			MPart mPart = activationList.get(i);
-			MElementContainer<MUIElement> container = mPart.getParent();
-			if (container == parent) {
-				return i;
-			} else if (container == null) {
-				MPlaceholder placeholder = mPart.getCurSharedRef();
-				if (placeholder != null && placeholder.getParent() == parent) {
-					return i;
-				}
-			}
-		}
-		return -1;
 	}
 
 	private List<ViewReference> viewReferences = new ArrayList<>();
@@ -2047,45 +1998,21 @@ public class WorkbenchPage implements IWorkbenchPage {
 			}
 		}
 
-		MUIElement area = findSharedArea();
-		if (area instanceof MPlaceholder) {
-			area = ((MPlaceholder) area).getRef();
-		}
-		if (area != null && area.isVisible() && area.isToBeRendered()) {
-			// we have a shared area, try iterating over its editors first
-			List<MPart> editors = modelService.findElements(area, CompatibilityEditor.MODEL_ELEMENT_ID, MPart.class);
-			for (MPart model : editors) {
-				Object object = model.getObject();
-				if (object instanceof CompatibilityEditor) {
-					CompatibilityEditor editor = (CompatibilityEditor) object;
-					// see bug 308492
-					if (!editor.isBeingDisposed() && isInArea(area, model)) {
-						return ((CompatibilityEditor) object).getEditor();
-					}
-				}
-			}
-		}
 
-		MPerspective perspective = getPerspectiveStack().getSelectedElement();
-		if (perspective == null) {
-			return null;
-		}
-
-		List<MPart> parts = modelService.findElements(perspective, CompatibilityEditor.MODEL_ELEMENT_ID, MPart.class,
-				null);
-		for (MPart part : parts) {
-			Object object = part.getObject();
-			if (object instanceof CompatibilityEditor) {
-				CompatibilityEditor editor = (CompatibilityEditor) object;
-				// see bug 308492
-				if (!editor.isBeingDisposed()) {
-					if (isValid(perspective, part) || isValid(window, part)) {
-						return ((CompatibilityEditor) object).getEditor();
-					}
-				}
-			}
-		}
-		return null;
+		// To deal with edge case bugs like 453072
+		// we use DSG's MPart tag 'activeEditor' to determine an active editor when Eclipse logic find no editor.
+		// This makes the return value consistent with UI (tab highlighting CSS uses the same tag)
+		return modelService
+				.findElements(window, MPart.class, EModelService.ANYWHERE,
+						part -> part.getTags().contains("activeEditor")) //$NON-NLS-1$
+				.stream()
+				.map(MPart::getObject)
+				.filter(object -> (object instanceof CompatibilityEditor))
+				.map(object -> (CompatibilityEditor) object)
+				.filter(compEditor -> !compEditor.isBeingDisposed()) // see bug 308492
+				.map(CompatibilityEditor::getEditor)
+				.findAny()
+				.orElse(null);
 	}
 
 	/**
@@ -2125,13 +2052,19 @@ public class WorkbenchPage implements IWorkbenchPage {
 		}
 
 		MPerspective perspective = getPerspectiveStack().getSelectedElement();
-		for (MPart model : activationList) {
-			Object object = model.getObject();
+		if (perspective == null) {
+			return null;
+		}
+
+		List<MPart> parts = modelService.findElements(perspective, CompatibilityEditor.MODEL_ELEMENT_ID, MPart.class,
+				null);
+		for (MPart part : parts) {
+			Object object = part.getObject();
 			if (object instanceof CompatibilityEditor) {
 				CompatibilityEditor editor = (CompatibilityEditor) object;
 				// see bug 308492
 				if (!editor.isBeingDisposed()) {
-					if (isValid(perspective, model) || isValid(window, model)) {
+					if (isValid(perspective, part) || isValid(window, part)) {
 						return ((CompatibilityEditor) object).getEditor();
 					}
 				}

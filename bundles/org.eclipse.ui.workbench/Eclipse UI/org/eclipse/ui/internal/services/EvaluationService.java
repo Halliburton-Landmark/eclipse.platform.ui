@@ -73,11 +73,13 @@ public final class EvaluationService implements IEvaluationService {
 			String[] vars = ratVariables.toArray(new String[ratVariables.size()]);
 			for (String var : vars) {
 				Object value = context.getActive(var);
-				if (value == null) {
-					ratContext.remove(var);
-				} else {
-					ratContext.set(var, value);
-				}
+				runExternalCode(() -> {
+					if (value == null) {
+						ratContext.remove(var);
+					} else {
+						ratContext.set(var, value);
+					}
+				});
 			}
 			// This ties tool item enablement to variable changes that can
 			// effect the enablement.
