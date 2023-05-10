@@ -427,7 +427,7 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering,
 			points[index++] = circX - radius + 1;
 			points[index++] = bottomY;
 
-			points[index++] = circX - radius;
+			points[index++] = selectionX1 = circX + 1 - radius;
 			points[index++] = bottomY;
 		} else {
 			if (active) {

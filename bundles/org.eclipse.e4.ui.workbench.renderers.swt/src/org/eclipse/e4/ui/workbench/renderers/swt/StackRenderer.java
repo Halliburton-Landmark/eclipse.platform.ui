@@ -14,7 +14,7 @@
  *     Andrey Loskutov <loskutov@gmx.de> - Bug 337588, 388476, 461573
  *     Simon Scholz <simon.scholz@vogella.com> - Bug 442285, 487348
  *     Patrik Suzzi <psuzzi@gmail.com> - Bug 497618
- *     Christoph L�ubrich - Bug 433465
+ *     Christoph Läubrich - Bug 433465
  *******************************************************************************/
 package org.eclipse.e4.ui.workbench.renderers.swt;
 
