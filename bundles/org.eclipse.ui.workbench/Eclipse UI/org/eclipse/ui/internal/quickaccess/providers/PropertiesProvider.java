@@ -55,10 +55,13 @@ public class PropertiesProvider extends QuickAccessProvider {
 				ISelection selection = activePage.getSelection();
 				if (selection instanceof IStructuredSelection && !selection.isEmpty()) {
 					Object element = ((IStructuredSelection) selection).getFirstElement();
-					PropertyPageContributorManager.getManager().contribute(pageManager, element);
-					for (IPreferenceNode property : pageManager.getElements(PreferenceManager.PRE_ORDER)) {
-						PropertiesElement propertiesElement = new PropertiesElement(element, property);
-						idToElement.put(propertiesElement.getId(), propertiesElement);
+					// Need a null check as getFirstElement() can return 'null' value.
+					if (element != null) {
+						PropertyPageContributorManager.getManager().contribute(pageManager, element);
+						for (IPreferenceNode property : pageManager.getElements(PreferenceManager.PRE_ORDER)) {
+							PropertiesElement propertiesElement = new PropertiesElement(element, property);
+							idToElement.put(propertiesElement.getId(), propertiesElement);
+						}
 					}
 				}
 			}

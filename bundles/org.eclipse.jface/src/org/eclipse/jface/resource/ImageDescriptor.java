@@ -61,10 +61,13 @@ import org.eclipse.swt.widgets.Display;
  */
 public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 
-	/**
-	 * A small red square used to warn that an image cannot be created.
-	 */
-	protected static final ImageData DEFAULT_IMAGE_DATA = new ImageData(6, 6, 1, new PaletteData(new RGB(255, 0, 0)));
+    /**
+     * A small red square used to warn that an image cannot be created.
+     */
+	// Temporary changed size from 6x6 to 16x16. This helps to save layouts in
+	// SHOW_MISSING_SVG_IMAGES mode
+	protected static final ImageData DEFAULT_IMAGE_DATA = new ImageData(/* 6, 6, */16, 16,
+            1, new PaletteData(new RGB[] { new RGB(255, 0, 0) }));
 
 	/**
 	 * Constructs an image descriptor.
@@ -169,21 +172,22 @@ public abstract class ImageDescriptor extends DeviceResourceDescriptor {
 		return new ImageDataImageDescriptor(img);
 	}
 
-	/**
-	 * Creates and returns a new image descriptor from a URL.
-	 *
-	 * If the URL requires scanning IO to calculate, consider using
-	 * {@link #createFromURLSupplier(boolean,Supplier)} instead.
-	 *
-	 * @param url The URL of the image file.
-	 * @return a new image descriptor
-	 */
+    /**
+     * Creates and returns a new image descriptor from a URL.
+     *
+     * @param url The URL of the image file.
+     * @return a new image descriptor
+     */
 	public static ImageDescriptor createFromURL(URL url) {
 		if (url == null) {
 			return getMissingImageDescriptor();
 		}
-		return new URLImageDescriptor(url);
+
+		ImageDescriptor svgImageDescriptor = SvgImageDescriptor.getImageDescriptor(url);
+
+		return svgImageDescriptor != null ? svgImageDescriptor : new URLImageDescriptor(url);
 	}
+
 
 	/**
 	 * Creates and returns a new image descriptor from a supplier of a URL.
