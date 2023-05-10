@@ -101,7 +101,7 @@ public class CommandProvider extends QuickAccessProvider {
 
 			final Command command = commandService.getCommand(currentCommandId);
 			ParameterizedCommand pcmd = new ParameterizedCommand(command, null);
-			if (command != null && ehandlerService.canExecute(pcmd) && !isFilteredOut(command.getId())) {
+			if (command != null && ehandlerService.canExecute(pcmd, context) && !isFilteredOut(command.getId())) {
 				try {
 					Collection<ParameterizedCommand> combinations = ParameterizedCommand.generateCombinations(command);
 					for (ParameterizedCommand pc : combinations) {

@@ -331,6 +331,16 @@ public abstract class QuickAccessContents {
 		}
 		updateInfoLabel();
 		updateFeedback(filter.isEmpty(), showAllMatches);
+		final int preferredLastColumnWidth = getPreferredLastColumnWidth();
+		tableColumnLayout.setColumnData(table.getColumn(1), new ColumnWeightData(50, preferredLastColumnWidth));
+	}
+
+	private int getPreferredLastColumnWidth() {
+		return Arrays.stream(table.getItems()).mapToInt(item -> {
+			final String text = item.getText(1);
+			textLayout.setText(text);
+			return textLayout.getBounds().width;
+		}).max().orElse(0) + 24;
 	}
 
 	int numberOfFilteredResults;
