@@ -51,7 +51,6 @@ public class CleanupAddon {
 
 	private static final String DISABLE_CLEANUP_ADDON = "DisableCleanupAddon";
 
-	@Inject
 	IEventBroker eventBroker;
 
 	EModelService modelService;
