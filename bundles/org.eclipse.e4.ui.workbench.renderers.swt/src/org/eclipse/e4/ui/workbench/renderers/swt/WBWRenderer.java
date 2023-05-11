@@ -156,7 +156,6 @@ public class WBWRenderer extends SWTPartRenderer {
 			shell.setMinimized(false);
 		}
 		shell.setActive();
-		shell.moveAbove(null);
 	}
 
 	@Inject

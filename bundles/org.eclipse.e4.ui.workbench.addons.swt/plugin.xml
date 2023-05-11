@@ -7,6 +7,10 @@
          point="org.eclipse.e4.workbench.model">
       <processor
             beforefragment="true"
+            class="org.eclipse.e4.ui.workbench.addons.dndaddon.DragAndDropUtil">
+      </processor>
+      <processor
+            beforefragment="true"
             class="org.eclipse.e4.ui.workbench.addons.swt.CleanupProcessor">
       </processor>
       <processor
