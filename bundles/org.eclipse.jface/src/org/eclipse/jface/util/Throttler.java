@@ -56,6 +56,7 @@ public class Throttler {
 		int minWaitBetweenRunMillis = (int) minWaitTime.toMillis();
 		Runnable runner = () -> {
 			scheduled.set(false);
+			lastRunNanos = System.nanoTime();
 			runnable.run();
 			lastRunNanos = System.nanoTime();
 		};
