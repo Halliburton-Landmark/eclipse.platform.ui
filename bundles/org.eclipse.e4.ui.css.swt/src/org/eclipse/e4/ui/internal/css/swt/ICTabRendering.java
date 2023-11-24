@@ -23,23 +23,13 @@ public interface ICTabRendering {
 
 	void setSelectedTabHighlight(Color color);
 
-	void setFillToolbarArea(boolean fillToolbarArea);
-
-	void setSelectedHoverBorderColor(Color color);
-
 	void setSelectedTabFill(Color color);
 
 	void setSelectedTabFill(Color[] colors, int[] percents);
 
-	void setUnselectedHoverBorderColor(Color color);
-
-	void setUnselectedHoverColor(Color color);
-
 	void setUnselectedTabsColor(Color color);
 
 	void setUnselectedTabsColor(Color[] colors, int[] percents);
-
-	void setUnselectedTabOutline(Color color);
 
 	void setUnselectedHotTabsColorBackground(Color color);
 
@@ -69,6 +59,4 @@ public interface ICTabRendering {
 	 * @param drawCustomTabContentBackground
 	 */
 	void setDrawCustomTabContentBackground(boolean drawCustomTabContentBackground);
-
-	void setWrappedTabFolderColor(Color color);
 }

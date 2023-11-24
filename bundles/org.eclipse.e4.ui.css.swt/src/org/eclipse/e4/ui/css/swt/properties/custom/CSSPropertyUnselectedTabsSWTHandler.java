@@ -27,13 +27,14 @@ import org.eclipse.swt.widgets.Listener;
 import org.w3c.dom.css.CSSValue;
 
 public class CSSPropertyUnselectedTabsSWTHandler extends AbstractCSSPropertySWTHandler {
+	private static final String UNSELECTED_TABS_COLOR_PROP = "swt-unselected-tabs-color";
 
 	private static final String RESIZE_LISTENER = "CSSPropertyUnselectedTabsSWTHandler.resizeListener";
 
 	@Override
 	protected void applyCSSProperty(Control control, String property,
 			CSSValue value, String pseudo, CSSEngine engine) throws Exception {
-		if (!(control instanceof CTabFolder)) {
+		if (!(control instanceof CTabFolder) || !isUnselectedTabsColorProp(property)) {
 			return;
 		}
 		CTabFolder folder = ((CTabFolder) control);
@@ -75,6 +76,10 @@ public class CSSPropertyUnselectedTabsSWTHandler extends AbstractCSSPropertySWTH
 			String pseudo, CSSEngine engine) throws Exception {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	private boolean isUnselectedTabsColorProp(String property) {
+		return UNSELECTED_TABS_COLOR_PROP.equals(property);
 	}
 
 	// TODO: It needs to be refactored when the Bug 33276 gets fixed
