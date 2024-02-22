@@ -68,9 +68,6 @@ public class DetachedDropAgent extends DropAgent {
 		modelService.detach((MPartSashContainerElement) dragElement, rectangle.x, rectangle.y, rectangle.width,
 				rectangle.height);
 
-		// Fully re-activate the part since its location has changed
-		reactivatePart(dragElement);
-
 		return true;
 	}
 

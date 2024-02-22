@@ -1049,10 +1049,16 @@ public class TrimStack {
 			fixToolItemSelection();
 		} else if (!show && isShowing) {
 			if (cachedUseOverlays) {
-				clientAreaComposite.removeControlListener(caResizeListener);
-
-				ctrl.setParent(originalParent);
-
+				// Check to ensure that the client area is non-null since the
+				// trimstack may be currently hosted in the limbo shell
+				if (clientAreaComposite != null) {
+					clientAreaComposite.removeControlListener(caResizeListener);
+				}
+				
+				if (ctrl != null) {
+					ctrl.setParent(originalParent);
+				}
+				
 				hostPane.dispose();
 				hostPane = null;
 			} else {

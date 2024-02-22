@@ -285,7 +285,9 @@ public class ContributedPartRenderer extends SWTPartRenderer {
 				parent.setRedraw(false);
 				super.disposeWidget(element);
 			} finally {
-				parent.setRedraw(true);
+				if (!parent.isDisposed()) {
+					parent.setRedraw(true);
+				}
 			}
 		} else {
 			super.disposeWidget(element);
