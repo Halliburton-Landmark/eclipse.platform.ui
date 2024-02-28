@@ -439,15 +439,6 @@ public class ModelServiceImpl implements EModelService {
 		return new ArrayList<>(elements);
 	}
 
-	private <T> Iterable<T> findPerspectiveElements(MUIElement searchRoot, String id,
-			Class<T> clazz,
-			List<String> tagsToMatch) {
-		LinkedHashSet<T> elements = new LinkedHashSet<>();
-		ElementMatcher matcher = new ElementMatcher(id, clazz, tagsToMatch);
-		findElementsRecursive(searchRoot, clazz, matcher, elements, PRESENTATION);
-		return elements;
-	}
-
 	@Override
 	public MUIElement find(String id, MUIElement searchRoot) {
 		if (id == null || id.isEmpty()) {
@@ -667,32 +658,27 @@ public class ModelServiceImpl implements EModelService {
 
 	@Override
 	public MPlaceholder findPlaceholderFor(MWindow window, MUIElement element) {
-		Iterable<MPlaceholder> phList = findPerspectiveElements(window, null, MPlaceholder.class, null);
-		List<MPlaceholder> elementRefs = new ArrayList<>();
-		for (MPlaceholder ph : phList) {
-			if (ph.getRef() == element) {
-				elementRefs.add(ph);
-			}
-		}
-
-		if (elementRefs.isEmpty()) {
+		LinkedHashSet<MPlaceholder> elements = new LinkedHashSet<>();
+		findElementsRecursive(window, MPlaceholder.class, ph -> ((MPlaceholder) ph).getRef() == element, elements,
+				PRESENTATION);
+		if (elements.isEmpty()) {
 			return null;
 		}
 
-		if (elementRefs.size() == 1) {
-			return elementRefs.get(0);
+		if (elements.size() == 1) {
+			return elements.iterator().next();
 		}
 
 		// If there is more than one placeholder then return the one in the shared area
-		for (MPlaceholder refPh : elementRefs) {
+		for (MPlaceholder refPh : elements) {
 			int loc = getElementLocation(refPh);
-			if ((loc & IN_SHARED_AREA) != 0) {
+			if ((loc & (OUTSIDE_PERSPECTIVE | IN_SHARED_AREA)) != 0) {
 				return refPh;
 			}
 		}
 
 		// Just return the first one
-		return elementRefs.get(0);
+		return elements.iterator().next();
 	}
 
 	@Override

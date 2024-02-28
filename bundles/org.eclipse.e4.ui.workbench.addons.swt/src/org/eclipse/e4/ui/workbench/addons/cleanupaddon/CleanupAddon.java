@@ -15,6 +15,7 @@
 
 package org.eclipse.e4.ui.workbench.addons.cleanupaddon;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.e4.core.di.annotations.Optional;
@@ -50,15 +51,18 @@ public class CleanupAddon {
 
 	private static final String DISABLE_CLEANUP_ADDON = "DisableCleanupAddon"; //$NON-NLS-1$
 
-	@Inject
 	IEventBroker eventBroker;
 
-	@Inject
 	EModelService modelService;
 
-	@Inject
 	MApplication app;
 
+	@PostConstruct
+	private void init(MApplication app, EModelService modelService, IEventBroker eventBroker) {
+      this.app = app;
+      this.modelService = modelService;
+      this.eventBroker = eventBroker;
+	}
 	@Inject
 	@Optional
 	private void subscribeTopicChildren(@UIEventTopic(UIEvents.ElementContainer.TOPIC_CHILDREN) Event event) {
@@ -153,7 +157,6 @@ public class CleanupAddon {
 			}
 		});
 	}
-
 	/**
 	 * Returns true if and only if the given element should make itself visible
 	 * when its first child becomes visible and make itself invisible whenever

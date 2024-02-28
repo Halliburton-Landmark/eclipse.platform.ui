@@ -15,12 +15,11 @@
 
 package org.eclipse.e4.ui.internal.workbench;
 
-import static java.util.Collections.singletonList;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import org.eclipse.e4.core.contexts.IEclipseContext;
 import org.eclipse.e4.ui.model.application.MApplication;
 import org.eclipse.e4.ui.model.application.ui.MElementContainer;
@@ -271,6 +270,13 @@ class PartActivationHistory {
 	}
 
 	MPart getNextActivationCandidate(Collection<MPart> validParts, MPart part) {
+		if (part.getCurSharedRef() != null) {
+			MPart candidate = validParts.stream().filter(c -> c != part && c.getTags().contains("activeEditor")) //$NON-NLS-1$
+					.findAny().orElse(null);
+			if (candidate != null) {
+				return candidate;
+			}
+		}
 		MArea area = isInArea(part);
 		if (area != null) {
 			// focus should stay in the area if possible
@@ -321,18 +327,16 @@ class PartActivationHistory {
 			}
 		}
 
-		List<MPart> activeCandidates = modelService.findElements(perspective, null, MPart.class,
-				singletonList(EPartService.ACTIVE_ON_CLOSE_TAG));
-		if (activeCandidates.size() > 0) {
-			activeCandidates.get(0).getTags().remove(EPartService.ACTIVE_ON_CLOSE_TAG);
-			MPart candidate = activeCandidates.get(0);
-			if (partService.isInContainer(perspective, candidate)
-					&& isValid(perspective, candidate)) {
-				return candidate;
-			}
-		}
+        Collection<MPart> candidates = perspective.getContext().get(EPartService.class).getParts();
 
-		Collection<MPart> candidates = perspective.getContext().get(EPartService.class).getParts();
+        Optional<MPart> activeOnClose = candidates.stream().filter(part -> part.getTags().contains(EPartService.ACTIVE_ON_CLOSE_TAG)).findAny();
+        if (activeOnClose.isPresent()) {
+            activeOnClose.get().getTags().remove(EPartService.ACTIVE_ON_CLOSE_TAG);
+            if (isValid(activeOnClose.get())) {
+                return activeOnClose.get();
+            }
+        }
+
 		for (MPart candidate : candidates) {
 			if (isValid(perspective, candidate)) {
 				return candidate;

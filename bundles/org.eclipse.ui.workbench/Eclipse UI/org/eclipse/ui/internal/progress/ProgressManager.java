@@ -999,7 +999,6 @@ public class ProgressManager extends ProgressProvider implements IProgressServic
 			dialog.run(fork, cancelable, runnable);
 			return;
 		}
-
 		busyCursorWhile(runnable);
 	}
 
@@ -1062,6 +1061,9 @@ public class ProgressManager extends ProgressProvider implements IProgressServic
 	private void setUserInterfaceActive(boolean active) {
 		IWorkbench workbench = PlatformUI.getWorkbench();
 		Shell[] shells = workbench.getDisplay().getShells();
+		while (workbench.getDisplay().readAndDispatch()) {
+			// clear event queue prior to updating shells' enabled state
+		}
 		if (active) {
 			for (Shell shell : shells) {
 				if (!shell.isDisposed()) {
