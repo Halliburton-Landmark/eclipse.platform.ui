@@ -1450,7 +1450,9 @@
                scope="ON_SELECTED_AND_CHILDREN"
                values="org.eclipse.ui.internal.views.markers.ErrorsWarningsParameters">
          </markerFieldConfiguration>
-
+     </markerContentGenerator>
+   </extension>
+   	
    <extension
          point="org.eclipse.ui.installationPages">
           <page

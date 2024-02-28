@@ -15,6 +15,7 @@
 
 package org.eclipse.e4.ui.workbench.addons.cleanupaddon;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.e4.core.di.annotations.Optional;

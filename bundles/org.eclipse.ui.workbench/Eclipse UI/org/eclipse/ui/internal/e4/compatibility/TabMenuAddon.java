@@ -1,7 +1,8 @@
 package org.eclipse.ui.internal.e4.compatibility;
+
+import jakarta.inject.Inject;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
 import org.eclipse.e4.core.contexts.IEclipseContext;
 import org.eclipse.e4.core.contexts.RunAndTrack;
 import org.eclipse.e4.core.di.annotations.Optional;
