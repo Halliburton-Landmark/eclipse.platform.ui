@@ -683,8 +683,7 @@ public class CTabRendering extends CTabFolderRenderer implements ICTabRendering,
 					inactive_index += 2;
 				}
 				gc.setClipping(points[0], onBottom ? bounds.y - header : bounds.y,
-						parent.getSize().x + INNER_KEYLINE_WIDTH + OUTER_KEYLINE_WIDTH,
-						bounds.y + bounds.height);
+						parent.getSize().x + INNER_KEYLINE_WIDTH + OUTER_KEYLINE_WIDTH, bounds.y + bounds.height);
 
 				Color color = hotUnselectedTabsColorBackground;
 				if (color == null) {

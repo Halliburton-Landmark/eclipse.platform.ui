@@ -25,6 +25,7 @@ import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ISelectionProvider;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.AbstractSourceProvider;
@@ -53,7 +54,9 @@ import org.eclipse.ui.services.IServiceLocator;
  * @since 3.5
  * @author Prakash G.R.
  */
-public class WorkbenchSourceProvider extends AbstractSourceProvider implements INullSelectionListener {
+@SuppressWarnings({ "rawtypes", "unchecked" })
+public class WorkbenchSourceProvider extends AbstractSourceProvider implements
+		INullSelectionListener {
 
 	private static final String STATUS_LINE_VIS = ISources.ACTIVE_WORKBENCH_WINDOW_NAME + ".isStatusLineVisible"; //$NON-NLS-1$
 
@@ -606,6 +609,12 @@ public class WorkbenchSourceProvider extends AbstractSourceProvider implements I
 			}
 			return;
 		}
+	    // delay until after e4 Model is updated so workbench.getActiveWorkbenchWindow
+	    // returns the correct instance.
+	    event.display.asyncExec(() -> { if (!event.widget.isDisposed()) processEvent(event);});
+	};
+
+	private final void processEvent(Event event) {
 		if (DEBUG) {
 			logDebuggingInfo("\tWSP:lastActiveShell: " + lastActiveShell); //$NON-NLS-1$
 			logDebuggingInfo("\tWSP:lastActiveWorkbenchWindowShell" + lastActiveWorkbenchWindowShell); //$NON-NLS-1$

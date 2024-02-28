@@ -53,6 +53,7 @@ import org.eclipse.e4.ui.workbench.IPresentationEngine;
 import org.eclipse.e4.ui.workbench.IWorkbench;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.resource.SvgImageDescriptor;
 import org.eclipse.ui.commands.ICommandImageService;
 import org.eclipse.ui.commands.ICommandService;
 import org.eclipse.ui.internal.WorkbenchPlugin;
@@ -381,6 +382,9 @@ public class MenuHelper {
 
 		// Attempt to retrieve URIs from the descriptor and convert into a more
 		// durable form in case it's to be persisted
+		if (descriptor instanceof SvgImageDescriptor) {
+			return ((SvgImageDescriptor) descriptor).getURL().toString();
+		}
 		Adapter adapter = context != null ? context.get(Adapter.class) : null;
 		if (adapter != null) {
 			Object o = adapter.adapt(descriptor, URL.class);

@@ -34,8 +34,7 @@ public class CSSPropertyUnselectedTabsSWTHandler extends AbstractCSSPropertySWTH
 	@Override
 	protected void applyCSSProperty(Control control, String property,
 			CSSValue value, String pseudo, CSSEngine engine) throws Exception {
-		if (!(control instanceof CTabFolder)
-				|| !isUnselectedTabsColorProp(property)) {
+		if (!(control instanceof CTabFolder) || !isUnselectedTabsColorProp(property)) {
 			return;
 		}
 		CTabFolder folder = ((CTabFolder) control);
