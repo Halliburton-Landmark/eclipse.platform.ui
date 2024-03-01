@@ -208,10 +208,10 @@ public class QuickAccessDialog extends PopupDialog {
 
 						/*
 						 * Execute after the dialog has been fully closed/disposed and the correct
-						 * EclipseContext is in place.
+						 * EclipseContext and active shell are in place.
 						 */
 						final QuickAccessElement element = (QuickAccessElement) selectedElement;
-						window.getShell().getDisplay().asyncExec(element::execute);
+						display.asyncExec(() -> display.asyncExec(element::execute));
 					}
 				}
 			};
