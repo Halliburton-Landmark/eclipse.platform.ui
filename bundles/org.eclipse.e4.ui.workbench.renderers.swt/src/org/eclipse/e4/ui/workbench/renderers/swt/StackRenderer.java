@@ -73,10 +73,10 @@ import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionItem;
 import org.eclipse.jface.action.LegacyActionTools;
 import org.eclipse.jface.action.MenuManager;
-import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.preference.JFacePreferences;
+import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.widgets.WidgetFactory;
 import org.eclipse.swt.SWT;
@@ -240,7 +240,7 @@ public class StackRenderer extends LazyStackRenderer {
 				}
 			}
 		}
-
+		
 		return itemsToSet;
 	}
 
