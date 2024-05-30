@@ -240,7 +240,6 @@ public class StackRenderer extends LazyStackRenderer {
 				}
 			}
 		}
-
 		return itemsToSet;
 	}
 
@@ -695,9 +694,10 @@ public class StackRenderer extends LazyStackRenderer {
 		int styleOverride = getStyleOverride(pStack);
 		int style = styleOverride == -1 ? SWT.BORDER : styleOverride;
 		CTabFolder tabFolder = new CTabFolder(parentComposite, style);
-		if (pStack.getTags().contains("EditorStack")) { //$NON-NLS-1$
-			createOnboardingControls(tabFolder);
-		}
+		// according to ADO 1257324 we don`t require onboarding control
+		// if (pStack.getTags().contains("EditorStack")) { //$NON-NLS-1$
+		//     createOnboardingControls(tabFolder);
+		// }
 		tabFolder.setMRUVisible(getMRUValue());
 
 		// Adjust the minimum chars based on the location
