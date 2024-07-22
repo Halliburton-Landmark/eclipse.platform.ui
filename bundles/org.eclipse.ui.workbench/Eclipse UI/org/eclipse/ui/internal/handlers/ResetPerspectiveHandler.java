@@ -70,7 +70,12 @@ public class ResetPerspectiveHandler extends AbstractHandler {
 						}
 					} else {
 						String message = NLS.bind(WorkbenchMessages.ResetPerspective_message, descriptor.getLabel());
-						PlainMessageDialog dialog = PlainMessageDialog.getBuilder(activeWorkbenchWindow.getShell(),WorkbenchMessages.ResetPerspective_title).message(message).buttonLabels(List.of(WorkbenchMessages.ResetPerspective_buttonLabel, IDialogConstants.NO_LABEL)).build();
+						PlainMessageDialog dialog = PlainMessageDialog
+								.getBuilder(activeWorkbenchWindow.getShell(), WorkbenchMessages.ResetPerspective_title)
+								.image(SWT.ICON_QUESTION).message(message).buttonLabels(List
+										.of(WorkbenchMessages.ResetPerspective_buttonLabel, IDialogConstants.NO_LABEL))
+								.build();
+
 						int result = dialog.open();
 						if (result == Window.OK) {
 							page.resetPerspective();
