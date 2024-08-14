@@ -82,7 +82,11 @@ public class MessageLine extends CLabel {
 		if (status != null) {
 			String message = status.getMessage();
 			if (message != null && message.length() > 0) {
-				setText(LegacyActionTools.escapeMnemonics(message));
+				if ("OK".equalsIgnoreCase(message)) { //$NON-NLS-1$
+					setText(""); //$NON-NLS-1$
+				} else {
+					setText(LegacyActionTools.escapeMnemonics(message));
+				}
 				setImage(findImage(status));
 				return;
 			}
