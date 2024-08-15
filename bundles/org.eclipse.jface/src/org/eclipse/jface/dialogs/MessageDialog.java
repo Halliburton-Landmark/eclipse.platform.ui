@@ -255,9 +255,16 @@ public class MessageDialog extends IconAndMessageDialog {
 			this.image = getInfoImage();
 			break;
 		}
-		case QUESTION:
-		case QUESTION_WITH_CANCEL:
+		case QUESTION: {
+			this.image = getQuestionImage();
+			break;
+		}
+		case QUESTION_WITH_CANCEL: {
+			this.image = getQuestionImage();
+			break;
+		}
 		case CONFIRM: {
+			this.image = getQuestionImage();
 			break;
 		}
 		case WARNING: {
