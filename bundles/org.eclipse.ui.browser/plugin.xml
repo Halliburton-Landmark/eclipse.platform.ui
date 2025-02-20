@@ -89,9 +89,8 @@
 -->
 
    <!-- Web Browsers -->
-   <!-- Commented in scope of [ADO 1279484]
    <extension point="org.eclipse.ui.browser.browsers">
-      <!- Linux ->
+      <!-- Linux -->
       <browser
          id="org.eclipse.ui.browser.firefox"
          name="%browserFirefox"
@@ -129,11 +128,11 @@
          os="linux"
          executable="epiphany">
          <location>
-            usr/bin/epiphany
+         	usr/bin/epiphany
          </location>
       </browser>
 
-      <!- Windows ->
+      <!-- Windows -->
       <browser
          id="org.eclipse.ui.browser.firefox"
          name="%browserFirefox"
@@ -186,7 +185,7 @@
          <location>%%ProgramW6432%\Opera\opera.exe</location>
       </browser>
 
-      <!- Mac ->
+      <!-- Mac -->
       <browser
          id="org.eclipse.ui.browser.firefox"
          name="%browserFirefox"
@@ -218,7 +217,6 @@
          <location>Applications/Microsoft Edge.app</location>
       </browser>
    </extension>
-   -->
    <extension
          point="org.eclipse.ui.commands">
       <command
