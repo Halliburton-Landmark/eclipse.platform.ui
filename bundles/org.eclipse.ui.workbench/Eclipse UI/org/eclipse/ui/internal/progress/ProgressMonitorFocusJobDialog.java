@@ -58,7 +58,7 @@ public class ProgressMonitorFocusJobDialog extends ProgressMonitorJobsDialog {
 	 */
 	public ProgressMonitorFocusJobDialog(Shell parentShell) {
 		super(parentShell == null ? ProgressManagerUtil.getNonModalShell() : parentShell);
-		setShellStyle(getDefaultOrientation() | SWT.BORDER | SWT.TITLE | SWT.RESIZE | SWT.MAX | SWT.MODELESS);
+		setShellStyle(getDefaultOrientation() | SWT.BORDER | SWT.TITLE | SWT.RESIZE | SWT.MODELESS);
 		setCancelable(true);
 		enableDetailsButton = true;
 	}

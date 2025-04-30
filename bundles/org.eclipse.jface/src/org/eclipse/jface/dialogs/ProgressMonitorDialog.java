@@ -300,7 +300,7 @@ public class ProgressMonitorDialog extends IconAndMessageDialog implements
 		// no close button on the shell style
 		if (isResizable()) {
 			setShellStyle(getDefaultOrientation() | SWT.BORDER | SWT.TITLE
-					| SWT.APPLICATION_MODAL | SWT.RESIZE | SWT.MAX);
+					| SWT.APPLICATION_MODAL | SWT.RESIZE);
 		} else {
 			setShellStyle(getDefaultOrientation() | SWT.BORDER | SWT.TITLE
 					| SWT.APPLICATION_MODAL);
