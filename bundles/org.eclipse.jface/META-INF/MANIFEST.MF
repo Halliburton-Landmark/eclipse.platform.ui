@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: %pluginName
 Bundle-SymbolicName: org.eclipse.jface;singleton:=true
-Bundle-Version: 3.32.0.lgc20250430-1900
+Bundle-Version: 3.32.0.lgc20250725-1400
 Bundle-Vendor: %providerName
 Bundle-Localization: plugin
 Export-Package: org.eclipse.jface,
