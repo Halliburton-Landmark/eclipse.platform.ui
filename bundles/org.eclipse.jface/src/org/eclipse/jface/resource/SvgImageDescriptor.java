@@ -125,7 +125,6 @@ public class SvgImageDescriptor extends ImageDescriptor {
 
 			try {
 				new URL(svgUrlSpec).openConnection().connect();
-				System.err.println(urlSpec);
 				urlSpec = svgUrlSpec;
 			} catch (IOException e) {
 				if (USE_OLD_SVG_IMAGES) {
