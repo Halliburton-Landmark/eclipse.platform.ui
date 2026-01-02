@@ -70,7 +70,7 @@ public class SvgImageDescriptor extends ImageDescriptor {
 
     @Override
     public ImageData getImageData(int zoom) {
-		int scale = zoom / 100;
+		float scale = zoom / 100f;
 		try {
 			byte[] imageBytes = SVGHelper.loadSvg(url, renderWidth * scale, renderHeight * scale);
 			return new ImageData(new ByteArrayInputStream(imageBytes));
@@ -125,6 +125,7 @@ public class SvgImageDescriptor extends ImageDescriptor {
 
 			try {
 				new URL(svgUrlSpec).openConnection().connect();
+				System.err.println(urlSpec);
 				urlSpec = svgUrlSpec;
 			} catch (IOException e) {
 				if (USE_OLD_SVG_IMAGES) {
