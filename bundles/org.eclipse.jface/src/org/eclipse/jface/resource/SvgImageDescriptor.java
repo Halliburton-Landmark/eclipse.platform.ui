@@ -70,7 +70,7 @@ public class SvgImageDescriptor extends ImageDescriptor {
 
     @Override
     public ImageData getImageData(int zoom) {
-		int scale = zoom / 100;
+		float scale = zoom / 100f;
 		try {
 			byte[] imageBytes = SVGHelper.loadSvg(url, renderWidth * scale, renderHeight * scale);
 			return new ImageData(new ByteArrayInputStream(imageBytes));
