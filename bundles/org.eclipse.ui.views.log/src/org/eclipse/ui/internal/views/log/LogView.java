@@ -148,7 +148,7 @@ public class LogView extends ViewPart implements LogListener {
 	private Action fReadLogAction;
 	private Action fCopyAction;
 	private Action fActivateViewAction;
-	private Action fOpenLogAction;
+	// private Action fOpenLogAction;
 	private Action fExportLogAction;
 	private Action fExportLogEntryAction;
 	private Throttler mutualRefresh;
@@ -297,8 +297,8 @@ public class LogView extends ViewPart implements LogListener {
 		fDeleteLogAction = createDeleteLogAction();
 		toolBarManager.add(fDeleteLogAction);
 
-		fOpenLogAction = createOpenLogAction();
-		toolBarManager.add(fOpenLogAction);
+		// fOpenLogAction = createOpenLogAction();
+		// toolBarManager.add(fOpenLogAction);
 
 		fReadLogAction = createReadLogAction();
 		toolBarManager.add(fReadLogAction);
@@ -326,7 +326,7 @@ public class LogView extends ViewPart implements LogListener {
 			clearAction.setEnabled(!(elements.isEmpty() && groups.isEmpty()));
 			manager.add(clearAction);
 			manager.add(fDeleteLogAction);
-			manager.add(fOpenLogAction);
+			// manager.add(fOpenLogAction);
 			manager.add(fReadLogAction);
 			manager.add(new Separator());
 			manager.add(fExportLogAction);
@@ -449,35 +449,36 @@ public class LogView extends ViewPart implements LogListener {
 		return action;
 	}
 
-	private Action createOpenLogAction() {
-		Action action = null;
-		try {
-			// TODO this isn't the best way to check... we should be smarter and use package admin
-			// check to see if org.eclipse.ui.ide is available
-			Class.forName("org.eclipse.ui.ide.IDE"); //$NON-NLS-1$
-			// check to see if org.eclipse.core.filesystem is available
-			Class.forName("org.eclipse.core.filesystem.IFileStore"); //$NON-NLS-1$
-			action = new OpenIDELogFileAction(this);
-		} catch (ClassNotFoundException e) {
-			action = new Action() {
-				@Override
-				public void run() {
-					if (fInputFile.exists()) {
-						Job job = getOpenLogFileJob();
-						job.setUser(false);
-						job.setPriority(Job.SHORT);
-						job.schedule();
-					}
-				}
-			};
-		}
-		action.setText(Messages.LogView_view_currentLog);
-		action.setImageDescriptor(SharedImages.getImageDescriptor(SharedImages.DESC_OPEN_LOG));
-		action.setDisabledImageDescriptor(SharedImages.getImageDescriptor(SharedImages.DESC_OPEN_LOG_DISABLED));
-		action.setEnabled(fInputFile.exists());
-		action.setToolTipText(Messages.LogView_view_currentLog_tooltip);
-		return action;
-	}
+	// private Action createOpenLogAction() {
+	// Action action = null;
+	// try {
+	// // TODO this isn't the best way to check... we should be smarter and use
+	// package admin
+	// // check to see if org.eclipse.ui.ide is available
+	// Class.forName("org.eclipse.ui.ide.IDE"); //$NON-NLS-1$
+	// // check to see if org.eclipse.core.filesystem is available
+	// Class.forName("org.eclipse.core.filesystem.IFileStore"); //$NON-NLS-1$
+	// action = new OpenIDELogFileAction(this);
+	// } catch (ClassNotFoundException e) {
+	// action = new Action() {
+	// @Override
+	// public void run() {
+	// if (fInputFile.exists()) {
+	// Job job = getOpenLogFileJob();
+	// job.setUser(false);
+	// job.setPriority(Job.SHORT);
+	// job.schedule();
+	// }
+	// }
+	// };
+	// }
+	// action.setText(Messages.LogView_view_currentLog);
+	// action.setImageDescriptor(SharedImages.getImageDescriptor(SharedImages.DESC_OPEN_LOG));
+	// action.setDisabledImageDescriptor(SharedImages.getImageDescriptor(SharedImages.DESC_OPEN_LOG_DISABLED));
+	// action.setEnabled(fInputFile.exists());
+	// action.setToolTipText(Messages.LogView_view_currentLog_tooltip);
+	// return action;
+	// }
 
 	private Action createPropertiesAction() {
 		Action action = new EventDetailsDialogAction(this, fTree, fFilteredTree.getViewer(), fMemento);
@@ -1218,7 +1219,7 @@ public class LogView extends ViewPart implements LogListener {
 				boolean exists = fInputFile.exists();
 				boolean enabled = exists && fInputFile.equals(Platform.getLogFileLocation().toFile());
 				fDeleteLogAction.setEnabled(enabled);
-				fOpenLogAction.setEnabled(exists);
+				// fOpenLogAction.setEnabled(exists);
 				fExportLogAction.setEnabled(exists);
 				fExportLogEntryAction.setEnabled(!viewer.getSelection().isEmpty());
 			}
